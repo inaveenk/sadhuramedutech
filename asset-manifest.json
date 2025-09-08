@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/sadhuramedutech/exams/static/css/main.5d29d587.css",
+    "main.js": "/sadhuramedutech/exams/static/js/main.badee958.js",
+    "index.html": "/sadhuramedutech/exams/index.html",
+    "main.5d29d587.css.map": "/sadhuramedutech/exams/static/css/main.5d29d587.css.map",
+    "main.badee958.js.map": "/sadhuramedutech/exams/static/js/main.badee958.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.5d29d587.css",
+    "static/js/main.badee958.js"
+  ]
+}
