@@ -14,6 +14,7 @@ import ExamPage from "./pages/ExamPage";
 import ResultPage from "./pages/ResultPage";
 import AttemptHistory from "./pages/AttemptHistory";
 import ExamDetail from "./pages/ExamDetail";
+import Profile from "./pages/Profile";
 
 function App() {
   return (
@@ -39,6 +40,7 @@ function App() {
                   <Route path="/result" element={<ResultPage />} />
                   <Route path="/history" element={<AttemptHistory />} />
                   <Route path="/detail" element={<ExamDetail />} />
+                  <Route path="/profile" element={<Profile />} />
                 </Routes>
               </main>
             </div>

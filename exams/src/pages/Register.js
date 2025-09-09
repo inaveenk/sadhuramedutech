@@ -76,7 +76,7 @@ export default function Register() {
         <button type="submit">Register</button>
       </form>
       <p className="center" style={{ marginTop: "12px" }}>
-        Already have an account? <a href="exams/login">Login</a>
+        Already have an account? <a href="login">Login</a>
       </p>
     </div>
   );
