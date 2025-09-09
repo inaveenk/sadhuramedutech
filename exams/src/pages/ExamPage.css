@@ -1,0 +1,120 @@
+.exam-page {
+    display: flex;
+    height: 100vh;
+    background: #f9f9f9;
+    font-family: sans-serif;
+  }
+  
+  .sidebar {
+    width: 80px;
+    background: #fff;
+    border-right: 1px solid #ddd;
+    padding: 12px;
+    transition: width 0.3s;
+    overflow-y: auto;
+  }
+  
+  .sidebar.open {
+    width: 200px;
+  }
+  
+  .sidebar h3 {
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+  
+  .sidebar button {
+    margin-bottom: 10px;
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+  
+  .question-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  
+  .q-tile {
+    width: 28px;
+    height: 28px;
+    background: #eee;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  
+  .q-tile.current {
+    border: 2px solid #14a3e4;
+  }
+  
+  .q-tile.flagged {
+    background: #f39c12;
+    color: white;
+  }
+  
+  .q-tile.answered {
+    background: #2ecc71;
+    color: white;
+  }
+  
+  .exam-main {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+  }
+  
+  .exam-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .question-card {
+    background: #fff;
+    padding: 20px;
+    margin-top: 12px;
+    border-radius: 12px;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+  }
+  
+  .options {
+    display: flex;
+    flex-direction: column;
+    margin-top: 12px;
+  }
+  
+  .option-btn {
+    padding: 10px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    cursor: pointer;
+    text-align: left;
+  }
+  
+  .option-btn.selected {
+    background: #14a3e4;
+    color: white;
+  }
+  
+  .actions {
+    margin-top: 12px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  
+  .actions button {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background: #14a3e4;
+    color: white;
+    font-weight: 600;
+  }
+  

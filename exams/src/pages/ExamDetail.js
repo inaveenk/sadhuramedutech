@@ -1,68 +1,194 @@
-// src/pages/ExamDetail.js
-import React, { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
-import { db, ref, onValue, auth } from "../firebase";
+// src/pages/ExamPage.js
+import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import "./ExamPage.css"; // optional for styling
 
-export default function ExamDetail() {
-  const { state } = useLocation();
-  const category = state?.category;
-  const setNo = state?.setNo;
+export default function ExamPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { categoryName, setNo, questions } = location.state || {};
 
-  const [questions, setQuestions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [selectedOption, setSelectedOption] = useState("");
+  const [score, setScore] = useState(0);
+  const [attemptedQuestions, setAttemptedQuestions] = useState({});
+  const [flaggedQuestions, setFlaggedQuestions] = useState({});
+  const [timeLeft, setTimeLeft] = useState(questions ? questions.length * 60 : 0); // 1 min per question
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
-    const uid = auth.currentUser?.uid;
-    if (!uid) {
+    if (!questions || questions.length === 0) {
+      alert("No questions found for this set!");
+      navigate("/home");
+    }
+  }, [questions, navigate]);
+
+  // Timer
+  useEffect(() => {
+    if (timeLeft <= 0) {
+      handleFinish();
       return;
     }
-    // find matching attempt (we will pick latest attempt for category+setNo)
-    const aRef = ref(db, `users/${uid}/attempts`);
-    onValue(aRef, (snap) => {
-      let chosen = null;
-      if (snap.exists()) {
-        snap.forEach((s) => {
-          const val = s.val();
-          if (val.category === category && Number(val.setNo) === Number(setNo)) {
-            // choose latest by date
-            if (!chosen || new Date(val.date) > new Date(chosen.date)) chosen = val;
-          }
-        });
-      }
+    const timer = setInterval(() => {
+      setTimeLeft((t) => t - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [timeLeft]);
 
-      if (chosen) {
-        setQuestions(chosen.questions || []);
-      } else {
-        setQuestions([]);
-      }
-      setLoading(false);
+  if (!questions) return <div className="center">Loading...</div>;
+
+  const currentQuestion = questions[currentIndex];
+
+  const handleOptionSelect = (option) => {
+    setSelectedOption(option);
+    setAttemptedQuestions((prev) => ({
+      ...prev,
+      [currentIndex]: option,
+    }));
+  };
+
+  const handleNext = () => {
+    checkScore();
+    if (currentIndex < questions.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+      setSelectedOption(attemptedQuestions[currentIndex + 1] || "");
+    } else {
+      handleFinish();
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+      setSelectedOption(attemptedQuestions[currentIndex - 1] || "");
+    }
+  };
+
+  const handleFlag = () => {
+    setFlaggedQuestions((prev) => ({
+      ...prev,
+      [currentIndex]: !prev[currentIndex],
+    }));
+  };
+
+  const checkScore = () => {
+    if (selectedOption === currentQuestion.correctAns) {
+      setScore((s) => s + 1);
+    }
+  };
+
+  const handleFinish = () => {
+    navigate("/result", {
+      state: {
+        score,
+        total: questions.length,
+        categoryName,
+        setNo,
+        attemptedQuestions,
+        flaggedQuestions,
+        questions,
+      },
     });
-  }, [category, setNo]);
+  };
 
-  if (loading) return <p>Loading attempt...</p>;
-  if (!questions.length) return <p>No attempted question data found for this set.</p>;
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
 
   return (
-    <div>
-      <h3>{category} — Set {setNo} (Attempt detail)</h3>
-      <div className="tile-grid" style={{ marginTop: 12 }}>
-        {questions.map((q, idx) => (
-          <div className="tile" key={idx}>
-            <div style={{ marginBottom: 8 }}><strong>{idx + 1}. {q.question}</strong></div>
-
-            <div style={{ fontSize: 14 }}>
-              <div>• A: {q.optionA}</div>
-              <div>• B: {q.optionB}</div>
-              <div>• C: {q.optionC}</div>
-              <div>• D: {q.optionD}</div>
+    <div className="exam-container" style={{ display: "flex" }}>
+      {/* Sidebar */}
+      <div
+        className={`exam-sidebar ${sidebarOpen ? "open" : "closed"}`}
+        style={{
+          width: sidebarOpen ? 200 : 0,
+          transition: "width 0.3s",
+          overflowX: "hidden",
+          background: "#f4f4f4",
+          padding: sidebarOpen ? "10px" : "0px",
+        }}
+      >
+        <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ marginBottom: 10 }}>
+          {sidebarOpen ? "Hide" : "Show"} Questions
+        </button>
+        {sidebarOpen &&
+          questions.map((q, idx) => (
+            <div
+              key={idx}
+              onClick={() => setCurrentIndex(idx)}
+              style={{
+                display: "inline-block",
+                width: 30,
+                height: 30,
+                lineHeight: "30px",
+                margin: 4,
+                borderRadius: "50%",
+                textAlign: "center",
+                cursor: "pointer",
+                background: flaggedQuestions[idx]
+                  ? "orange"
+                  : attemptedQuestions[idx]
+                  ? "#14a3e4"
+                  : "#ddd",
+                color: flaggedQuestions[idx] || attemptedQuestions[idx] ? "#fff" : "#000",
+              }}
+            >
+              {idx + 1}
             </div>
+          ))}
+      </div>
 
-            <div style={{ marginTop: 8 }}>
-              <div>Your answer: <strong style={{ color: q.userAnswer === q.correctAnswer ? "green" : "red" }}>{q.userAnswer || "—"}</strong></div>
-              <div>Correct answer: <strong style={{ color: "green" }}>{q.correctAnswer}</strong></div>
-            </div>
+      {/* Main content */}
+      <div style={{ flex: 1, padding: 20 }}>
+        <h2>
+          {categoryName} - Set {setNo}
+        </h2>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+          <div>
+            Q{currentIndex + 1} / {questions.length}
           </div>
-        ))}
+          <div>Time Left: {formatTime(timeLeft)}</div>
+          <button
+            onClick={handleFlag}
+            style={{
+              background: flaggedQuestions[currentIndex] ? "orange" : "#eee",
+            }}
+          >
+            {flaggedQuestions[currentIndex] ? "Flagged" : "Flag"}
+          </button>
+        </div>
+
+        <div className="card" style={{ padding: 20, marginBottom: 20 }}>
+          <h3>{currentQuestion.question}</h3>
+          <div style={{ marginTop: "12px" }}>
+            {["optionA", "optionB", "optionC", "optionD"].map((opt) => (
+              <button
+                key={opt}
+                onClick={() => handleOptionSelect(currentQuestion[opt])}
+                style={{
+                  display: "block",
+                  margin: "6px 0",
+                  width: "100%",
+                  background: selectedOption === currentQuestion[opt] ? "#14a3e4" : "#fff",
+                  color: selectedOption === currentQuestion[opt] ? "#fff" : "#222",
+                }}
+              >
+                {currentQuestion[opt]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <button onClick={handlePrev} disabled={currentIndex === 0}>
+            Previous
+          </button>
+          <button onClick={handleNext}>
+            {currentIndex < questions.length - 1 ? "Next" : "Finish"}
+          </button>
+        </div>
       </div>
     </div>
   );

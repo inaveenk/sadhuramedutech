@@ -1,26 +1,67 @@
 // src/pages/Sets.js
-import React from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { db, ref, onValue } from "../firebase";
 
 export default function Sets() {
-  const { category } = useParams();
-  const nav = useNavigate();
+  const { categoryName } = useParams();
+  const [sets, setSets] = useState([]);
+  const navigate = useNavigate();
 
-  // For demo: show 1..5 sets. In real app, read 'sets' from DB or pass via state.
-  const sets = [1,2,3,4,5];
+  useEffect(() => {
+    if (!categoryName) return;
+
+    const questionsRef = ref(db, `SETS/${categoryName}/questions`);
+    return onValue(questionsRef, (snapshot) => {
+      const data = snapshot.val() || {};
+
+      // Group questions by setNo
+      const grouped = {};
+      Object.values(data).forEach((q) => {
+        const setNumber = q.setNo || 1;
+        if (!grouped[setNumber]) grouped[setNumber] = [];
+        grouped[setNumber].push(q);
+      });
+
+      // Convert grouped object into array of sets
+      const setsList = Object.keys(grouped).map((setNo) => ({
+        setNo,
+        questions: grouped[setNo],
+        time: 10, // Customize or fetch from Firebase if stored
+      }));
+
+      setSets(setsList);
+    });
+  }, [categoryName]);
+
+  const handleSetClick = (set) => {
+    // Navigate to exam page and pass category and setNo as state
+    navigate("/exam", {
+      state: { categoryName, setNo: set.setNo, questions: set.questions },
+    });
+  };
 
   return (
     <div>
-      <h2>Sets for {category}</h2>
-      <div className="tile-grid">
-        {sets.map((s) => (
-          <div className="tile" key={s}>
-            <h3>Set {s}</h3>
-            <p>10 Questions</p>
-            <button onClick={() => nav("/exam", { state: { category, setNo: s } })}>Start</button>
-          </div>
-        ))}
-      </div>
+      <h2>{categoryName} - Sets</h2>
+      {sets.length === 0 ? (
+        <p>No sets available in this category.</p>
+      ) : (
+        <div className="tile-grid">
+          {sets.map((set) => (
+            <div
+              key={set.setNo}
+              className="tile"
+              style={{ cursor: "pointer" }}
+              onClick={() => handleSetClick(set)}
+            >
+              <h3>Set {set.setNo}</h3>
+              <p>{set.time} mins</p>
+              <p>{set.questions.length} Questions</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

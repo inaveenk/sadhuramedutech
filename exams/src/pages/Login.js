@@ -1,4 +1,3 @@
-// src/pages/Login.js
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, signInWithEmailAndPassword } from "../firebase";
@@ -6,42 +5,45 @@ import { auth, signInWithEmailAndPassword } from "../firebase";
 export default function Login() {
   const [email, setEmail] = useState("");
   const [pin, setPin] = useState("");
-  const [loading, setLoading] = useState(false);
-  const nav = useNavigate();
+  const navigate = useNavigate();
 
-  const handleLogin = async () => {
-    if (!email || !pin) {
-      alert("Enter email and PIN");
-      return;
-    }
-    setLoading(true);
+  const handleLogin = async (e) => {
+    e.preventDefault();
     try {
       await signInWithEmailAndPassword(auth, email, pin);
-      nav("/home");
+      navigate("/home");
     } catch (err) {
-      alert("Login failed: " + (err.message || err));
-    } finally {
-      setLoading(false);
+      alert(err.message);
     }
   };
 
   return (
     <div className="container">
-      <h2>Login</h2>
-      <div className="card" style={{ maxWidth: 420 }}>
+      <h2 className="page-title">Login</h2>
+      <form onSubmit={handleLogin}>
         <div className="form-row">
-          <label>Email</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
         </div>
         <div className="form-row">
-          <label>PIN</label>
-          <input type="password" value={pin} onChange={(e) => setPin(e.target.value)} />
+          <input
+            type="password"
+            placeholder="PIN"
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+            required
+          />
         </div>
-        <div className="form-row">
-          <button onClick={handleLogin} disabled={loading}>{loading ? "Logging..." : "Login"}</button>
-          <button className="secondary" style={{ marginLeft: 8 }} onClick={() => nav("/register")}>Register</button>
-        </div>
-      </div>
+        <button type="submit">Login</button>
+      </form>
+      <p className="center" style={{ marginTop: "12px" }}>
+        Don't have an account? <a href="register">Register</a>
+      </p>
     </div>
   );
 }

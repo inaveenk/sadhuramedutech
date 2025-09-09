@@ -7,7 +7,7 @@ import "./App.css";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
-  <BrowserRouter>
+  <BrowserRouter basename="/exams">
     <App />
   </BrowserRouter>
 );

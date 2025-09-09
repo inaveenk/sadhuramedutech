@@ -9,7 +9,7 @@ export default function Header() {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      navigate("/login");
+      navigate("/login"); // OK: only called on click
     } catch (err) {
       console.error(err);
     }
@@ -19,15 +19,15 @@ export default function Header() {
     <header className="app-header">
       <div style={{ fontWeight: "700", fontSize: 18 }}>
         <Link to="/home" style={{ color: "white", textDecoration: "none" }}>
-          BrainWin — CET
+          Practice Papers
         </Link>
       </div>
       <div>
+        <Link to="/categories" style={{ color: "white", marginRight: 12 }}>
+          Categories
+        </Link>
         <Link to="/history" style={{ color: "white", marginRight: 12 }}>
           Attempted
-        </Link>
-        <Link to="/home" style={{ color: "white", marginRight: 12 }}>
-          Categories
         </Link>
         <button className="small" onClick={handleLogout} style={{ marginLeft: 8 }}>
           Logout

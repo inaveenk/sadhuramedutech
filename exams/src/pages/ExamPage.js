@@ -1,121 +1,184 @@
 // src/pages/ExamPage.js
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { db, ref, onValue, push } from "../firebase";
+import { db, ref, onValue, set } from "../firebase";
 import { auth } from "../firebase";
+import "./ExamPage.css"; // make sure this file exists
 
 export default function ExamPage() {
-  const { state } = useLocation();
+  const location = useLocation();
   const navigate = useNavigate();
-  const category = state?.category;
-  const setNo = state?.setNo;
-
+  const { categoryName, setNo } = location.state || {}; // passed from Sets page
   const [questions, setQuestions] = useState([]);
-  const [answers, setAnswers] = useState({});
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [userAnswers, setUserAnswers] = useState({});
+  const [flaggedQuestions, setFlaggedQuestions] = useState([]);
+  const [timeLeft, setTimeLeft] = useState(600); // 10 min default
   const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
+  const timerRef = useRef();
+
+  // Fetch questions
   useEffect(() => {
-    if (!category || !setNo) {
-      alert("Invalid exam parameters");
-      navigate("/home");
-      return;
-    }
-    // read questions under SETS/{category}/questions where setNo == setNo
-    const qRef = ref(db, `SETS/${category}/questions`);
-    onValue(qRef, (snap) => {
-      const list = [];
-      snap.forEach((s) => {
-        const q = s.val();
-        if (Number(q.setNo) === Number(setNo)) {
-          list.push({ id: s.key, ...q });
-        }
-      });
-      setQuestions(list);
+    if (!categoryName) return;
+
+    const questionsRef = ref(db, `SETS/${categoryName}/questions`);
+    return onValue(questionsRef, (snap) => {
+      const data = snap.val() || {};
+      const filtered = Object.values(data).filter(q => q.setNo === Number(setNo));
+      setQuestions(filtered);
       setLoading(false);
     });
-  }, [category, setNo, navigate]);
+  }, [categoryName, setNo]);
 
-  function selectAnswer(qId, value) {
-    setAnswers((p) => ({ ...p, [qId]: value }));
-  }
+  // Timer
+  useEffect(() => {
+    timerRef.current = setInterval(() => {
+      setTimeLeft((t) => {
+        if (t <= 1) {
+          clearInterval(timerRef.current);
+          submitExam();
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
 
-  function handleSubmit() {
-    // compute score
-    let score = 0;
-    questions.forEach((q) => {
-      if (answers[q.id] && answers[q.id] === q.correctAns) score++;
-    });
+    return () => clearInterval(timerRef.current);
+  }, []);
 
-    // assemble attempt object (include questions array with userAnswer + correctAnswer)
-    const attempt = {
-      category,
+  if (loading) return <div className="center">Loading questions...</div>;
+  if (!questions.length) return <div className="center">No questions in this set.</div>;
+
+  const currentQuestion = questions[currentIndex];
+
+  // Handle answer selection
+  const handleAnswer = (option) => {
+    setUserAnswers({ ...userAnswers, [currentQuestion.question]: option });
+  };
+
+  // Handle flag
+  const toggleFlag = () => {
+    if (flaggedQuestions.includes(currentIndex)) {
+      setFlaggedQuestions(flaggedQuestions.filter((i) => i !== currentIndex));
+    } else {
+      setFlaggedQuestions([...flaggedQuestions, currentIndex]);
+    }
+  };
+
+  // Submit exam
+  const submitExam = async () => {
+    const userId = auth.currentUser.uid;
+    const examId = `exam_${Date.now()}`;
+    const examData = {
+      category: categoryName,
       setNo,
-      score,
-      total: questions.length,
-      date: new Date().toISOString(),
-      questions: questions.map((q) => ({
-        question: q.question,
-        optionA: q.optionA || "",
-        optionB: q.optionB || "",
-        optionC: q.optionC || "",
-        optionD: q.optionD || "",
-        correctAnswer: q.correctAns || "",
-        userAnswer: answers[q.id] || "",
-      })),
+      totalQuestions: questions.length,
+      score: calculateScore(),
+      answers: userAnswers,
+      flaggedQuestions,
+      timestamp: Date.now(),
     };
 
-    // save under users/{uid}/attempts
-    const uid = auth.currentUser?.uid;
-    if (!uid) {
-      alert("Login required to save attempt");
-      navigate("/login");
-      return;
+    try {
+      await set(ref(db, `users/${userId}/attemptedExams/${examId}`), examData);
+      navigate("/result", { state: { examData } });
+    } catch (err) {
+      console.error("Error storing exam:", err);
     }
-    const attemptsRef = ref(db, `users/${uid}/attempts`);
-    push(attemptsRef, attempt)
-      .then(() => {
-        navigate("/result", { state: { score, total: questions.length, category, setNo } });
-      })
-      .catch((err) => {
-        console.error(err);
-        alert("Failed to save attempt");
-        navigate("/result", { state: { score, total: questions.length, category, setNo } });
-      });
-  }
+  };
 
-  if (loading) return <div className="container"><p>Loading questions…</p></div>;
-  if (!questions.length) return <div className="container"><p>No questions found for this set.</p></div>;
+  // Calculate score
+  const calculateScore = () => {
+    let score = 0;
+    questions.forEach((q) => {
+      if (userAnswers[q.question] === q.correctAns) score++;
+    });
+    return score;
+  };
+
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
 
   return (
-    <div>
-      <h3>{category} — Set {setNo}</h3>
-      {questions.map((q, idx) => (
-        <div className="card" key={q.id}>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <strong>{idx + 1}. </strong>
-            <div style={{ flex: 1 }}>{q.question}</div>
+    <div className="exam-page">
+      {/* Sidebar */}
+      <div className={`sidebar ${sidebarOpen ? "open" : "closed"}`}>
+        <h3>Questions</h3>
+        <button onClick={() => setSidebarOpen(!sidebarOpen)}>
+          {sidebarOpen ? "Hide" : "Show"}
+        </button>
+        <div className="question-list">
+          {questions.map((q, idx) => (
+            <div
+              key={idx}
+              className={`q-tile ${
+                currentIndex === idx ? "current" : ""
+              } ${flaggedQuestions.includes(idx) ? "flagged" : ""} ${
+                userAnswers[q.question] ? "answered" : ""
+              }`}
+              onClick={() => setCurrentIndex(idx)}
+            >
+              {idx + 1}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Question */}
+      <div className="exam-main">
+        <div className="exam-header">
+          <h2>{categoryName} - Set {setNo}</h2>
+          <div className="timer">Time Left: {formatTime(timeLeft)}</div>
+        </div>
+
+        <div className="question-card">
+          <h3>
+            Q{currentIndex + 1}: {currentQuestion.question}
+          </h3>
+          <div className="options">
+            {["optionA", "optionB", "optionC", "optionD"].map((opt) => (
+              <button
+                key={opt}
+                className={`option-btn ${
+                  userAnswers[currentQuestion.question] === currentQuestion[opt]
+                    ? "selected"
+                    : ""
+                }`}
+                onClick={() => handleAnswer(currentQuestion[opt])}
+              >
+                {currentQuestion[opt]}
+              </button>
+            ))}
           </div>
-          <div style={{ marginTop: 8 }}>
-            {["optionA","optionB","optionC","optionD"].map((opt) =>
-              q[opt] ? (
-                <label key={opt} style={{ display: "block", margin: "6px 0" }}>
-                  <input
-                    type="radio"
-                    name={q.id}
-                    value={q[opt]}
-                    checked={answers[q.id] === q[opt]}
-                    onChange={() => selectAnswer(q.id, q[opt])}
-                  />{" "}
-                  {q[opt]}
-                </label>
-              ) : null
-            )}
+
+          <div className="actions">
+            <button onClick={toggleFlag}>
+              {flaggedQuestions.includes(currentIndex) ? "Unflag" : "Flag"}
+            </button>
+            <button
+              onClick={() =>
+                setCurrentIndex((i) =>
+                  i < questions.length - 1 ? i + 1 : i
+                )
+              }
+            >
+              Next
+            </button>
+            <button
+              onClick={() =>
+                setCurrentIndex((i) => (i > 0 ? i - 1 : i))
+              }
+            >
+              Prev
+            </button>
+            <button onClick={submitExam}>Submit Exam</button>
           </div>
         </div>
-      ))}
-
-      <div style={{ marginTop: 12 }}>
-        <button onClick={handleSubmit}>Submit Exam</button>
       </div>
     </div>
   );

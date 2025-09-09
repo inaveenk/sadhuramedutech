@@ -1,106 +1,83 @@
 // src/pages/Register.js
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  auth,
-  db,
-  ref,
-  get,
-  child,
-  createUserWithEmailAndPassword,
-  set,
-} from "../firebase";
+import { auth, db } from "../firebase"; // make sure db is your database instance
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { ref, set as firebaseSet } from "firebase/database";
 
 export default function Register() {
   const [name, setName] = useState("");
-  const [mobile, setMobile] = useState("");
   const [email, setEmail] = useState("");
+  const [mobile, setMobile] = useState("");
   const [pin, setPin] = useState("");
-  const [loading, setLoading] = useState(false);
-  const nav = useNavigate();
+  const navigate = useNavigate();
 
-  const validate = () => {
-    if (!name || !mobile || !email || !pin) return false;
-    if (!/^[0-9]{10}$/.test(mobile)) return false;
-    if (pin.length !== 6) return false;
-    return true;
-  };
-
-  const handleRegister = async () => {
-    if (!validate()) {
-      alert("Please enter valid details (10-digit mobile, 6-digit PIN).");
-      return;
-    }
-    setLoading(true);
-
+  const handleRegister = async (e) => {
+    e.preventDefault();
     try {
-      // check whether mobile or email already exists (small app, iterate)
-      const usersSnap = await get(child(ref(db), "users"));
-      let exists = false;
-      if (usersSnap.exists()) {
-        usersSnap.forEach((s) => {
-          const u = s.val();
-          if (u.mobile === "+91" + mobile || u.email === email) {
-            exists = true;
-          }
-        });
-      }
-      if (exists) {
-        alert("Mobile or email already registered.");
-        setLoading(false);
-        return;
-      }
+      const userCredential = await createUserWithEmailAndPassword(auth, email, pin);
+      const userId = userCredential.user.uid;
 
-      // register auth (email + pin)
-      const userCred = await createUserWithEmailAndPassword(auth, email, pin);
-      const uid = userCred.user.uid;
-
-      // save profile under users/{uid}
-      const userObj = {
-        email,
+      // Save additional user info in database
+      await firebaseSet(ref(db, `users/${userId}`), {
         userName: name,
-        mobile: "+91" + mobile,
-        userPlan: "active",
-        planStartDate: "",
-      };
-      await set(ref(db, `users/${uid}`), userObj);
+        userEmail: email,
+        mobile,
+        userPlan: "free", // default plan
+        planStartDate: new Date().toISOString(),
+      });
 
-      alert("Registration successful");
-      nav("/home");
+      navigate("/home");
     } catch (err) {
-      console.error(err);
-      alert("Registration error: " + (err.message || err));
-    } finally {
-      setLoading(false);
+      alert(err.message);
     }
   };
 
   return (
     <div className="container">
-      <h2>Register</h2>
-      <div className="card">
+      <h2 className="page-title">Register</h2>
+      <form onSubmit={handleRegister}>
         <div className="form-row">
-          <label>Full name</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} />
+          <input
+            type="text"
+            placeholder="Full Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
         </div>
         <div className="form-row">
-          <label>Mobile (10 digits)</label>
-          <input value={mobile} onChange={(e) => setMobile(e.target.value)} />
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
         </div>
         <div className="form-row">
-          <label>Email</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input
+            type="text"
+            placeholder="Mobile"
+            value={mobile}
+            onChange={(e) => setMobile(e.target.value)}
+            required
+          />
         </div>
         <div className="form-row">
-          <label>6-digit PIN (password)</label>
-          <input type="password" value={pin} onChange={(e) => setPin(e.target.value)} />
+          <input
+            type="password"
+            placeholder="PIN"
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+            required
+          />
         </div>
-
-        <div className="form-row">
-          <button onClick={handleRegister} disabled={loading}>{loading ? "Saving..." : "Register"}</button>
-          <button className="secondary" style={{ marginLeft: 8 }} onClick={() => (window.location.href = "/login")}>Login</button>
-        </div>
-      </div>
+        <button type="submit">Register</button>
+      </form>
+      <p className="center" style={{ marginTop: "12px" }}>
+        Already have an account? <a href="exams/login">Login</a>
+      </p>
     </div>
   );
 }
