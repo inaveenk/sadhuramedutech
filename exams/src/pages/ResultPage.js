@@ -5,8 +5,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 export default function ResultPage() {
   const { state } = useLocation();
   const navigate = useNavigate();
+
   const score = state?.score ?? 0;
-  const total = state?.total ?? 0;
+  const total = state?.totalQuestions ?? 0; // updated to match examData
   const category = state?.category;
   const setNo = state?.setNo;
 
@@ -15,10 +16,14 @@ export default function ResultPage() {
       <h2>Result</h2>
       <div className="card center">
         <h3>{category} — Set {setNo}</h3>
-        <p style={{ fontSize: 22 }}>Score: <strong>{score}</strong> / {total}</p>
+        <p style={{ fontSize: 22 }}>
+          Score: <strong>{score}</strong> / {total}
+        </p>
         <div style={{ marginTop: 8 }}>
           <button onClick={() => navigate("/home")}>Back to Home</button>
-          <button style={{ marginLeft: 8 }} onClick={() => navigate("/history")}>View Attempted Exams</button>
+          <button style={{ marginLeft: 8 }} onClick={() => navigate("/history")}>
+            View Attempted Exams
+          </button>
         </div>
       </div>
     </div>

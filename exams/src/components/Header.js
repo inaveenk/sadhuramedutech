@@ -70,7 +70,7 @@ export default function Header() {
 
       {/* Navigation Links */}
       <div>
-        <Link to="/categories" style={{ color: "white", marginRight: 12 }}>
+        <Link to="/home" style={{ color: "white", marginRight: 12 }}>
           Categories
         </Link>
         <Link to="/history" style={{ color: "white", marginRight: 12 }}>

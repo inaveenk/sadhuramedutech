@@ -27,7 +27,7 @@ export default function Sets() {
       const setsList = Object.keys(grouped).map((setNo) => ({
         setNo,
         questions: grouped[setNo],
-        time: 10, // Customize or fetch from Firebase if stored
+        time: grouped[setNo].length, // 1 min per question
       }));
 
       setSets(setsList);
@@ -56,8 +56,8 @@ export default function Sets() {
               onClick={() => handleSetClick(set)}
             >
               <h3>Set {set.setNo}</h3>
-              <p>{set.time} mins</p>
-              <p>{set.questions.length} Questions</p>
+              <p>Time: {set.time} min{set.time > 1 ? "s" : ""}</p>
+              <p>{set.questions.length} Question{set.questions.length > 1 ? "s" : ""}</p>
             </div>
           ))}
         </div>
