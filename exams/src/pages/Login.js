@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";   // 👈 import Link
 import { auth, signInWithEmailAndPassword } from "../firebase";
 
 export default function Login() {
@@ -42,7 +42,8 @@ export default function Login() {
         <button type="submit">Login</button>
       </form>
       <p className="center" style={{ marginTop: "12px" }}>
-        Don't have an account? <a href="register">Register</a>
+        Don't have an account?{" "}
+        <Link to="/register">Register</Link>   {/* 👈 use Link here */}
       </p>
     </div>
   );
