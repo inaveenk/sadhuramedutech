@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { db, ref, onValue } from "../firebase";
+import AdBanner from "../components/AdBanner";
 
 export default function Categories() {
   const [categories, setCategories] = useState([]);
