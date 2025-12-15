@@ -69,20 +69,40 @@ export default function Header() {
       </div>
 
       {/* Navigation Links */}
-      <div>
-        <Link to="/home" style={{ color: "white", marginRight: 12 }}>
-          Categories
-        </Link>
-        <Link to="/history" style={{ color: "white", marginRight: 12 }}>
-          Attempted
-        </Link>
-        <Link to="/profile" style={{ color: "white", marginRight: 12 }}>
-          Profile
-        </Link>
-        <button className="small" onClick={handleLogout} style={{ marginLeft: 8 }}>
-          Logout
-        </button>
-      </div>
+<div>
+  {/* Always visible */}
+  <Link to="/home" style={{ color: "white", marginRight: 12 }}>
+    Home
+  </Link>
+
+  {/* If user is logged in */}
+  {user && (
+    <>
+      <Link to="/history" style={{ color: "white", marginRight: 12 }}>
+        Attempted
+      </Link>
+
+      <Link to="/profile" style={{ color: "white", marginRight: 12 }}>
+        Profile
+      </Link>
+
+      <button
+        className="small"
+        onClick={handleLogout}
+        style={{ marginLeft: 8 }}
+      >
+        Logout
+      </button>
+    </>
+  )}
+
+  {/* If user is NOT logged in */}
+  {!user && (
+    <Link to="/login" style={{ color: "white", marginLeft: 12 }}>
+      Login
+    </Link>
+  )}
+</div>
     </header>
   );
 }

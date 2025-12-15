@@ -29,7 +29,7 @@ function App() {
           {/* ✅ Public routes */}
           <Route path="/" element={<Navigate to="/home" replace />} />
           <Route path="/home" element={<Home />} />
-          <Route path="/categories" element={<Categories />} />
+          <Route path="/categories/:subjectKey" element={<Categories />} />
           <Route path="/sets/:categoryName" element={<Sets />} />
           <Route path="/exam" element={<ExamPage />} />
           <Route path="/result" element={<ResultPage />} />
