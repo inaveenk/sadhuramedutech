@@ -1,9 +1,21 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta charset="UTF-8" />
+    <title>Redirecting...</title>
     <script>
-      var path = location.pathname;
-      location.replace("/#" + path);
+      // GitHub Pages SPA redirect
+      var path = window.location.pathname;
+      var search = window.location.search;
+      var hash = window.location.hash;
+
+      // Redirect everything to index.html with hash routing
+      window.location.replace(
+        "/" + "#" + path + search + hash
+      );
     </script>
   </head>
+  <body>
+    <p>Redirecting...</p>
+  </body>
 </html>
