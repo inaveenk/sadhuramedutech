@@ -4,12 +4,13 @@ import { db, ref, onValue } from "../firebase";
 
 export default function Home() {
   const [subjects, setSubjects] = useState([]);
+  const [loading, setLoading] = useState(true); // ✅ added
   const navigate = useNavigate();
 
   useEffect(() => {
     const subjectsRef = ref(db, "categories");
 
-    return onValue(subjectsRef, (snapshot) => {
+    const unsubscribe = onValue(subjectsRef, (snapshot) => {
       const data = snapshot.val() || {};
 
       // 🔥 KEEP THE KEY (IndianGK, HaryanaGK)
@@ -19,7 +20,10 @@ export default function Home() {
       }));
 
       setSubjects(list);
+      setLoading(false); // ✅ added
     });
+
+    return () => unsubscribe();
   }, []);
 
   const handleSubjectClick = (subjectKey) => {
@@ -31,34 +35,38 @@ export default function Home() {
     <div style={{ padding: "40px" }}>
       <h1 style={{ textAlign: "center" }}>Choose Subject</h1>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-          gap: "20px",
-          maxWidth: "1000px",
-          margin: "30px auto",
-        }}
-      >
-        {subjects.map((sub) => (
-          <div
-            key={sub.key}
-            onClick={() => handleSubjectClick(sub.key)}
-            style={{
-              background: "#14a3e4",
-              color: "white",
-              padding: "30px",
-              borderRadius: "14px",
-              cursor: "pointer",
-              fontWeight: "bold",
-              fontSize: "18px",
-              textAlign: "center",
-            }}
-          >
-            {sub.title}
-          </div>
-        ))}
-      </div>
+      {loading ? (
+        <p style={{ textAlign: "center" }}>Loading subjects...</p>
+      ) : (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+            gap: "20px",
+            maxWidth: "1000px",
+            margin: "30px auto",
+          }}
+        >
+          {subjects.map((sub) => (
+            <div
+              key={sub.key}
+              onClick={() => handleSubjectClick(sub.key)}
+              style={{
+                background: "#14a3e4",
+                color: "white",
+                padding: "30px",
+                borderRadius: "14px",
+                cursor: "pointer",
+                fontWeight: "bold",
+                fontSize: "18px",
+                textAlign: "center",
+              }}
+            >
+              {sub.title}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

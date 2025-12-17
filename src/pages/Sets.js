@@ -6,13 +6,16 @@ import { db, ref, onValue } from "../firebase";
 export default function Sets() {
   const { categoryName } = useParams();
   const [sets, setSets] = useState([]);
+  const [loading, setLoading] = useState(true); // ✅ added
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!categoryName) return;
 
+    setLoading(true); // ✅ added
+
     const questionsRef = ref(db, `SETS/${categoryName}/questions`);
-    return onValue(questionsRef, (snapshot) => {
+    const unsubscribe = onValue(questionsRef, (snapshot) => {
       const data = snapshot.val() || {};
 
       // Group questions by setNo
@@ -31,7 +34,10 @@ export default function Sets() {
       }));
 
       setSets(setsList);
+      setLoading(false); // ✅ added
     });
+
+    return () => unsubscribe();
   }, [categoryName]);
 
   const handleSetClick = (set) => {
@@ -41,22 +47,29 @@ export default function Sets() {
   };
 
   return (
-    <div className="sets-page-wrapper" style={{ display: "flex", justifyContent: "center", gap: "16px", padding: "16px" }}>
-      
+    <div
+      className="sets-page-wrapper"
+      style={{ display: "flex", justifyContent: "center", gap: "16px", padding: "16px" }}
+    >
       {/* Left Ad */}
       <div className="ad-side" style={{ width: "160px", flexShrink: 0 }}>
-        <ins className="adsbygoogle"
+        <ins
+          className="adsbygoogle"
           style={{ display: "block" }}
           data-ad-client="ca-pub-4769435723418888"
           data-ad-slot="2256417961"
           data-ad-format="auto"
-          data-full-width-responsive="true"></ins>
+          data-full-width-responsive="true"
+        ></ins>
       </div>
 
       {/* Main Content */}
       <div className="main-content" style={{ maxWidth: "600px", width: "100%" }}>
         <h2>{categoryName} - Sets</h2>
-        {sets.length === 0 ? (
+
+        {loading ? (
+          <p>Loading sets...</p>
+        ) : sets.length === 0 ? (
           <p>No sets available in this category.</p>
         ) : (
           <div className="tile-grid">
@@ -69,7 +82,10 @@ export default function Sets() {
               >
                 <h3>Set {set.setNo}</h3>
                 <p>Time: {set.time} min{set.time > 1 ? "s" : ""}</p>
-                <p>{set.questions.length} Question{set.questions.length > 1 ? "s" : ""}</p>
+                <p>
+                  {set.questions.length} Question
+                  {set.questions.length > 1 ? "s" : ""}
+                </p>
               </div>
             ))}
           </div>
@@ -78,12 +94,14 @@ export default function Sets() {
 
       {/* Right Ad */}
       <div className="ad-side" style={{ width: "160px", flexShrink: 0 }}>
-        <ins className="adsbygoogle"
+        <ins
+          className="adsbygoogle"
           style={{ display: "block" }}
           data-ad-client="ca-pub-4769435723418888"
           data-ad-slot="2256417961"
           data-ad-format="auto"
-          data-full-width-responsive="true"></ins>
+          data-full-width-responsive="true"
+        ></ins>
       </div>
 
       {/* Responsive CSS */}
