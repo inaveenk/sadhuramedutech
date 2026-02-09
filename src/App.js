@@ -5,6 +5,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Header from "./components/Header";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Footer from "./components/Footer";
+
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Home from "./pages/Home";
@@ -18,51 +19,41 @@ import Profile from "./pages/Profile";
 
 function App() {
   return (
-    <div className="app-root">
-      <Header />
-      <main className="container">
-        <Routes>
-          {/* Auth pages */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+    <Routes>
 
-          {/* ✅ Public routes */}
-          <Route path="/" element={<Navigate to="/home" replace />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/categories/:subjectKey" element={<Categories />} />
-          <Route path="/sets/:categoryName" element={<Sets />} />
-          <Route path="/exam" element={<ExamPage />} />
-          <Route path="/result" element={<ResultPage />} />
+      {/* ================= PUBLIC ROUTES ================= */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
 
-          {/* 🔒 Protected routes */}
-          <Route
-            path="/history"
-            element={
-              <ProtectedRoute>
-                <AttemptHistory />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/detail"
-            element={
-              <ProtectedRoute>
-                <ExamDetail />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </main>
-      <Footer />
-    </div>
+      {/* ================= PRIVATE APP ================= */}
+      <Route
+        path="/*"
+        element={
+          <ProtectedRoute>
+            <div className="app-root">
+              <Header />
+
+              <main className="container">
+                <Routes>
+                  <Route path="/" element={<Navigate to="/home" replace />} />
+                  <Route path="/home" element={<Home />} />
+                  <Route path="/categories/:subjectKey" element={<Categories />} />
+                  <Route path="/sets/:categoryName" element={<Sets />} />
+                  <Route path="/exam" element={<ExamPage />} />
+                  <Route path="/result" element={<ResultPage />} />
+                  <Route path="/history" element={<AttemptHistory />} />
+                  <Route path="/detail" element={<ExamDetail />} />
+                  <Route path="/profile" element={<Profile />} />
+                </Routes>
+              </main>
+
+              <Footer />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+
+    </Routes>
   );
 }
 
