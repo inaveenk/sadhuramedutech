@@ -11,6 +11,16 @@ body {
 }
 
 /* =========================
+   GLOBAL WIDTH CONTROLLER (MAIN CHANGE)
+========================= */
+
+.site-width {
+  width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* =========================
    APP ROOT
 ========================= */
 
@@ -49,25 +59,24 @@ header.app-header {
 }
 
 /* =========================
-   AUTH PAGES (LOGIN / REGISTER)
-   (kept narrow intentionally)
+   CONTAINER (LOGIN / REGISTER / FORMS)
 ========================= */
 
 .container {
-  padding: 20px;
-  max-width: 500px;
-  margin: 30px auto;
+  width: 90%;
+  margin: 10px auto;
+  padding: 16px;
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.08);
 }
 
 /* =========================
-   WIDE PAGES (HOME / CATEGORY / SETS / EXAM)
+   PAGE WIDE (HOME / CATEGORY / EXAM)
 ========================= */
 
 .page-wide {
-  max-width: 1100px;
+  width: 90%;
   margin: 0 auto;
   padding: 16px 20px;
 }
@@ -190,7 +199,6 @@ a:hover {
   text-align: left;
 }
 
-/* Set count badge (top-right) */
 .set-badge {
   position: absolute;
   top: 10px;
@@ -216,10 +224,12 @@ a:hover {
 }
 
 /* =========================
-   ADS LAYOUT
+   ADS + MAIN LAYOUT
 ========================= */
 
 .page-wrapper {
+  width: 90%;
+  margin: 0 auto;
   display: flex;
   justify-content: center;
   padding: 16px;
@@ -227,13 +237,12 @@ a:hover {
 }
 
 .ad-side {
-  width: 160px; /* standard sidebar ad */
+  width: 160px;
   flex-shrink: 0;
 }
 
 .main-content {
-  max-width: 600px;
-  width: 100%;
+  flex: 1;
 }
 
 /* =========================
@@ -241,14 +250,29 @@ a:hover {
 ========================= */
 
 @media (max-width: 768px) {
-  .page-wide {
+  .page-wrapper {
+    width: 90%;
     padding: 12px;
+  }
+
+  .page-wide {
+    width: 90%;
+    padding: 12px;
+  }
+
+  .container {
+    width: 90%;
   }
 
   .ad-side {
     display: none;
   }
 }
+
+/* =========================
+   LOADER ANIMATION
+========================= */
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
