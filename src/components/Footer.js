@@ -13,17 +13,7 @@ export default function Footer() {
   }, []);
 
   return (
-    <footer
-      style={{
-        textAlign: "center",
-        padding: "16px",
-        background: "#f5f5f5",
-        fontSize: "14px",
-        color: "#555",
-        marginTop: "20px",
-        borderTop: "1px solid #ddd",
-      }}
-    >
+    <footer className="app-footer">
       {/* AdSense block */}
       <div style={{ marginBottom: "12px" }}>
         <ins

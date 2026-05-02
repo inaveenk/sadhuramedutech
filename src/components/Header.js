@@ -9,6 +9,7 @@ export default function Header() {
   const location = useLocation();
   const [user, loading] = useAuthState(auth);
   const [userName, setUserName] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Fetch userName from Firebase when user is available
   useEffect(() => {
@@ -42,67 +43,145 @@ export default function Header() {
     }
   };
 
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
+
   if (loading) return null; // wait for auth to load
 
+  const salutationText =
+    user && userName ? `${getGreeting()}, ${userName}` : "Welcome";
+
   return (
-    <header
-      className="app-header"
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: "10px 20px",
-        background: "#14a3e4",
-        color: "white",
-      }}
-    >
-      {/* Logo / Home */}
-      <div style={{ fontWeight: "700", fontSize: 18 }}>
-        <Link to="/home" style={{ color: "white", textDecoration: "none" }}>
-          Practice Papers
+    <header className="app-header">
+      <div className="header-inner">
+        <Link to="/home" className="header-salutation">
+          {salutationText}
         </Link>
+
+        <div className="header-actions">
+          <nav className="nav" aria-label="Primary">
+            <Link
+              to="/home"
+              className={location.pathname === "/home" ? "active" : ""}
+            >
+              Home
+            </Link>
+            {user && (
+              <>
+                <Link
+                  to="/history"
+                  className={location.pathname === "/history" ? "active" : ""}
+                >
+                  Attempted
+                </Link>
+                <Link
+                  to="/profile"
+                  className={location.pathname === "/profile" ? "active" : ""}
+                >
+                  Profile
+                </Link>
+                <Link
+                  to="/leaderboard"
+                  className={location.pathname === "/leaderboard" ? "active" : ""}
+                >
+                  Leaderboard
+                </Link>
+                <button
+                  type="button"
+                  className="header-btn"
+                  onClick={handleLogout}
+                >
+                  Logout
+                </button>
+              </>
+            )}
+            {!user && (
+              <Link
+                to="/login"
+                className={location.pathname === "/login" ? "active" : ""}
+              >
+                Login
+              </Link>
+            )}
+          </nav>
+
+          <button
+            type="button"
+            className="menu-btn"
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((v) => !v)}
+          >
+            {menuOpen ? "×" : "≡"}
+          </button>
+        </div>
       </div>
 
-      {/* Greeting */}
-      <div style={{ fontWeight: "500", marginRight: 20 }}>
-        {user && userName ? `${getGreeting()}, ${userName}` : ""}
-      </div>
+      <div
+        className={`side-overlay ${menuOpen ? "open" : ""}`}
+        onClick={() => setMenuOpen(false)}
+        aria-hidden={!menuOpen}
+      />
 
-      {/* Navigation Links */}
-<div>
-  {/* Always visible */}
-  <Link to="/home" style={{ color: "white", marginRight: 12 }}>
-    Home
-  </Link>
-
-  {/* If user is logged in */}
-  {user && (
-    <>
-      <Link to="/history" style={{ color: "white", marginRight: 12 }}>
-        Attempted
-      </Link>
-
-      <Link to="/profile" style={{ color: "white", marginRight: 12 }}>
-        Profile
-      </Link>
-
-      <button
-        className="small"
-        onClick={handleLogout}
-        style={{ marginLeft: 8 }}
+      <aside
+        className={`side-drawer ${menuOpen ? "open" : ""}`}
+        aria-label="Menu"
       >
-        Logout
-      </button>
-    </>
-  )}
+        <div className="side-drawer__header">
+          <div className="side-drawer__title">Menu</div>
+          <button
+            type="button"
+            className="side-drawer__close"
+            onClick={() => setMenuOpen(false)}
+            aria-label="Close menu"
+          >
+            ×
+          </button>
+        </div>
 
-  {/* If user is NOT logged in */}
-  {!user && (
-    <Link to="/login" style={{ color: "white", marginLeft: 12 }}>
-      Login
-    </Link>
-  )}
-</div>
+        <nav className="side-drawer__nav">
+          <Link
+            to="/home"
+            className={location.pathname === "/home" ? "active" : ""}
+          >
+            Home
+          </Link>
+          {user && (
+            <>
+              <Link
+                to="/history"
+                className={location.pathname === "/history" ? "active" : ""}
+              >
+                Attempted
+              </Link>
+              <Link
+                to="/profile"
+                className={location.pathname === "/profile" ? "active" : ""}
+              >
+                Profile
+              </Link>
+              <Link
+                to="/leaderboard"
+                className={location.pathname === "/leaderboard" ? "active" : ""}
+              >
+                Leaderboard
+              </Link>
+              <button type="button" className="drawer-btn" onClick={handleLogout}>
+                Logout
+              </button>
+            </>
+          )}
+          {!user && (
+            <Link
+              to="/login"
+              className={location.pathname === "/login" ? "active" : ""}
+            >
+              Login
+            </Link>
+          )}
+        </nav>
+      </aside>
     </header>
   );
 }
