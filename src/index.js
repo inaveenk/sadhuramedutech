@@ -4,10 +4,15 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./App.css";
+import { LanguageProvider } from "./i18n";
+import ScrollToTop from "./components/ScrollToTop";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <BrowserRouter basename="/">
-    <App />
+    <LanguageProvider>
+      <ScrollToTop />
+      <App />
+    </LanguageProvider>
   </BrowserRouter>
 );

@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { auth, db, ref, onValue } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
+import { useLanguage } from "../i18n";
 
 export default function Leaderboard() {
   const [user] = useAuthState(auth);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [visibleCount, setVisibleCount] = useState(100);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const usersRef = ref(db, "users");
@@ -51,37 +53,37 @@ export default function Leaderboard() {
 
   return (
     <div className="page-wide leaderboard-page">
-      <h2 className="page-title">Leaderboard</h2>
+      <h2 className="page-title">{t("leaderboard_title")}</h2>
 
       <div className="leaderboard-summary card">
         {loading ? (
-          <p>Loading leaderboard...</p>
+          <p>{t("leaderboard_loading")}</p>
         ) : (
           <>
             <p>
-              <strong>Your Rank:</strong>{" "}
-              {currentUserRank ? `#${currentUserRank}` : "Unranked"}
+              <strong>{t("leaderboard_your_rank")}:</strong>{" "}
+              {currentUserRank ? `#${currentUserRank}` : t("home_unranked")}
             </p>
             <p>
-              <strong>Total Ranked Users:</strong> {rows.length}
+              <strong>{t("leaderboard_total_users")}:</strong> {rows.length}
             </p>
           </>
         )}
       </div>
 
       <div className="leaderboard-list card">
-        <h3 style={{ marginTop: 0 }}>Leaderboard</h3>
+        <h3 style={{ marginTop: 0 }}>{t("leaderboard_title")}</h3>
         {loading ? (
-          <p>Preparing list...</p>
+          <p>{t("leaderboard_preparing")}</p>
         ) : visibleRows.length === 0 ? (
-          <p>No attempts yet.</p>
+          <p>{t("leaderboard_no_attempts")}</p>
         ) : (
           visibleRows.map((item, index) => (
             <div key={item.uid} className="leaderboard-row">
               <div className="leaderboard-rank">#{index + 1}</div>
               <div className="leaderboard-name">{item.name}</div>
               <div className="leaderboard-marks">
-                Avg Marks: {item.averageMarks.toFixed(1)}
+                {t("home_avg_marks")}: {item.averageMarks.toFixed(1)}
               </div>
             </div>
           ))
@@ -89,7 +91,7 @@ export default function Leaderboard() {
         {!loading && hasMore && (
           <div style={{ marginTop: 14, textAlign: "center" }}>
             <button type="button" onClick={() => setVisibleCount((v) => v + 100)}>
-              View More
+              {t("leaderboard_view_more")}
             </button>
           </div>
         )}

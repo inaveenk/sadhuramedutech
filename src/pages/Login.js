@@ -3,41 +3,81 @@ import React, { useState } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom"; // 👈 added useLocation
 import { auth, signInWithEmailAndPassword } from "../firebase";
 import { db, ref, set } from "../firebase";
+import PinInput from "../components/PinInput";
+import { useLanguage } from "../i18n";
+import { authErrorToKey } from "../utils/authErrors";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [pin, setPin] = useState("");
+  const [formError, setFormError] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useLanguage();
 
-  // Check if we came from ExamPage with exam data
   const examData = location.state?.examData || null;
+  const pendingExamId = location.state?.examId || null;
+
+  const handlePinChange = (next) => {
+    const value = String(next || "").replace(/\D/g, "");
+    setPin(value.slice(0, 6));
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setFormError("");
+    const emailTrim = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrim)) {
+      setFormError(t("auth_invalid_email"));
+      return;
+    }
+    if (pin.length !== 6) {
+      setFormError(t("auth_pin_6"));
+      return;
+    }
     try {
-      const userCred = await signInWithEmailAndPassword(auth, email, pin);
+      const userCred = await signInWithEmailAndPassword(auth, emailTrim, pin);
       const userId = userCred.user.uid;
 
       if (examData) {
-        // Save attempted exam now
-        const examId = `exam_${Date.now()}`;
+        const examId = pendingExamId || `exam_${Date.now()}`;
         await set(ref(db, `users/${userId}/attemptedExams/${examId}`), examData);
 
-        // Redirect to result with exam data
-        navigate("/result", { state: examData });
+        navigate("/result", { state: { ...examData, examId } });
       } else {
-        // Normal login → go home
         navigate("/home");
       }
     } catch (err) {
-      alert(err.message);
+      if (err?.code === "auth/user-not-found") {
+        navigate("/register", {
+          replace: true,
+          state: {
+            email: emailTrim,
+            message: t("auth_no_account"),
+          },
+        });
+        return;
+      }
+      setFormError(t(authErrorToKey(err)));
     }
   };
 
   return (
     <div className="container">
-      <h2 className="page-title">Login</h2>
+      <h2 className="page-title">{t("login_title")}</h2>
+      {formError ? (
+        <div
+          className="card"
+          style={{
+            marginBottom: 12,
+            background: "#fef2f2",
+            border: "1px solid #fecaca",
+            color: "#7f1d1d",
+          }}
+        >
+          <strong>{formError}</strong>
+        </div>
+      ) : null}
       <form onSubmit={handleLogin}>
         <div className="form-row">
           <input
@@ -45,17 +85,23 @@ export default function Login() {
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
             required
           />
         </div>
         <div className="form-row">
-          <input
-            type="password"
-            placeholder="PIN"
+          <div style={{ marginBottom: 8, fontWeight: 700, color: "#334155" }}>
+            PIN (6 digits)
+          </div>
+          <PinInput
             value={pin}
-            onChange={(e) => setPin(e.target.value)}
-            required
+            onChange={handlePinChange}
+            length={6}
+            autoFocus={true}
+            name="pin"
+            autoComplete="current-password"
           />
+          <input type="hidden" value={pin} required />
         </div>
         <button type="submit">Login</button>
       </form>

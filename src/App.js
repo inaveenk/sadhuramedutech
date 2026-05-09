@@ -17,6 +17,9 @@ import AttemptHistory from "./pages/AttemptHistory";
 import ExamDetail from "./pages/ExamDetail";
 import Profile from "./pages/Profile";
 import Leaderboard from "./pages/Leaderboard";
+import Plans from "./pages/Plans";
+import Payment from "./pages/Payment";
+import Performance from "./pages/Performance";
 
 function App() {
   return (
@@ -45,7 +48,10 @@ function App() {
                   <Route path="/history" element={<AttemptHistory />} />
                   <Route path="/detail" element={<ExamDetail />} />
                   <Route path="/profile" element={<Profile />} />
+                  <Route path="/plans" element={<Plans />} />
+                  <Route path="/payment" element={<Payment />} />
                   <Route path="/leaderboard" element={<Leaderboard />} />
+                  <Route path="/performance" element={<Performance />} />
                 </Routes>
               </main>
 

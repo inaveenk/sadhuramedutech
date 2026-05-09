@@ -1,8 +1,14 @@
 // src/pages/ExamPage.js
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { db, ref, onValue, set } from "../firebase";
+import { db, ref, onValue, set, get } from "../firebase";
 import { auth } from "../firebase";
+import {
+  isPaidPlan,
+  findSubjectKeyForCategory,
+  categoryNamesForSubject,
+  subjectHasAttempt,
+} from "../utils/examAccess";
 import "./ExamPage.css";
 
 export default function ExamPage() {
@@ -13,61 +19,254 @@ export default function ExamPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState({});
   const [flaggedQuestions, setFlaggedQuestions] = useState([]);
-  const [timeLeft, setTimeLeft] = useState(0); // dynamic based on questions
+  const [timeLeft, setTimeLeft] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [accessPending, setAccessPending] = useState(true);
   const [paletteOpen, setPaletteOpen] = useState(false);
 
-  const timerRef = useRef();
-  const TIME_PER_QUESTION = 60; // 1 minute per question
+  const timerRef = useRef(null);
+  const submittedRef = useRef(false);
+  const answersRef = useRef({});
+  const flaggedRef = useRef([]);
+  const questionsRef = useRef([]);
+  const categoryRef = useRef(null);
+  const setNoRef = useRef(null);
 
-  // Fetch questions
+  const TIME_PER_QUESTION = 60;
+
+  answersRef.current = userAnswers;
+  flaggedRef.current = flaggedQuestions;
+  questionsRef.current = questions;
+  categoryRef.current = categoryName;
+  setNoRef.current = setNo;
+
+  // Warn users about refreshing/leaving during an active exam.
+  // Note: browsers show a default message (custom text is ignored).
+  useEffect(() => {
+    if (loading || accessPending) return;
+    if (!questions.length) return;
+
+    const handleBeforeUnload = (e) => {
+      if (submittedRef.current) return;
+      e.preventDefault();
+      e.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [loading, accessPending, questions.length]);
+
+  const buildExamData = useCallback(() => {
+    const examId = `exam_${Date.now()}`;
+    const ua = answersRef.current;
+    const fq = flaggedRef.current;
+    const qs = questionsRef.current;
+
+    let score = 0;
+    qs.forEach((q) => {
+      if (ua[q.question] === q.correctAns) score++;
+    });
+
+    const answersWithCorrect = qs.map((q) => ({
+      question: q.question,
+      yourAnswer: ua[q.question] ?? null,
+      correctAnswer: q.correctAns,
+    }));
+
+    const examData = {
+      category: categoryRef.current,
+      setNo: setNoRef.current,
+      totalQuestions: qs.length,
+      score,
+      answers: answersWithCorrect,
+      flaggedQuestions: fq,
+      timestamp: Date.now(),
+    };
+    return { examId, examData };
+  }, []);
+
+  const persistAndNavigateResult = useCallback(
+    async ({ examId, examData }) => {
+      if (!auth.currentUser) {
+        const saveChoice = window.confirm(
+          "Login to save your attempted history.\n\nClick OK to Login or Cancel to Skip."
+        );
+
+        if (saveChoice) {
+          navigate("/login", { state: { examData, examId } });
+        } else {
+          navigate("/result", { state: { ...examData, examId } });
+        }
+        return;
+      }
+
+      try {
+        const userId = auth.currentUser.uid;
+        await set(ref(db, `users/${userId}/attemptedExams/${examId}`), examData);
+        navigate("/result", { state: { ...examData, examId } });
+      } catch (err) {
+        console.error("Error storing exam:", err);
+      }
+    },
+    [navigate]
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!categoryName || setNo == null) {
+        setAccessPending(false);
+        return;
+      }
+      const user = auth.currentUser;
+      if (!user) {
+        if (Number(setNo) !== 1) {
+          alert("Sign in to access sets beyond Set 1.");
+          navigate(`/sets/${encodeURIComponent(categoryName)}`, {
+            replace: true,
+          });
+          return;
+        }
+        setAccessPending(false);
+        return;
+      }
+
+      const userSnap = await get(ref(db, `users/${user.uid}`));
+      if (cancelled) return;
+      const userData = userSnap.val() || {};
+
+      if (isPaidPlan(userData.userPlan)) {
+        setAccessPending(false);
+        return;
+      }
+
+      if (Number(setNo) !== 1) {
+        alert(
+          "Free plan includes Set 1 only. Buy Test Series to access more sets."
+        );
+        navigate(`/sets/${encodeURIComponent(categoryName)}`, { replace: true });
+        return;
+      }
+
+      let sk = location.state?.subjectKey;
+      if (!sk) {
+        sk = await findSubjectKeyForCategory(db, categoryName);
+      }
+      if (cancelled) return;
+
+      if (sk) {
+        const catSnap = await get(ref(db, `categories/${sk}`));
+        const names = categoryNamesForSubject(catSnap.val());
+        const attSnap = await get(ref(db, `users/${user.uid}/attemptedExams`));
+        const attempts = Object.values(attSnap.val() || {});
+        if (subjectHasAttempt(names, attempts)) {
+          alert(
+          "You've used your free trial for this subject. Buy Test Series to unlock all sets."
+          );
+          navigate(`/categories/${sk}`, { replace: true });
+          return;
+        }
+      }
+
+      setAccessPending(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [categoryName, setNo, navigate, location.state]);
+
   useEffect(() => {
     if (!categoryName) return;
 
-    const questionsRef = ref(db, `SETS/${categoryName}/questions`);
-    return onValue(questionsRef, (snap) => {
+    const questionsRefDb = ref(db, `SETS/${categoryName}/questions`);
+    return onValue(questionsRefDb, (snap) => {
       const data = snap.val() || {};
       const filtered = Object.values(data).filter(
         (q) => q.setNo === Number(setNo)
       );
       setQuestions(filtered);
       setLoading(false);
-
-      // Dynamically set time
       setTimeLeft(filtered.length * TIME_PER_QUESTION);
     });
   }, [categoryName, setNo]);
 
-  // Timer (start once per loaded set; avoids restarting every tick)
   useEffect(() => {
-    if (loading || questions.length === 0) return;
+    if (loading || questions.length === 0 || accessPending) return;
 
+    submittedRef.current = false;
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
-      setTimeLeft((t) => {
-        if (t <= 1) {
-          clearInterval(timerRef.current);
-          handleAutoSubmitExam();
-          return 0;
-        }
-        return t - 1;
-      });
+      setTimeLeft((t) => (t <= 1 ? 0 : t - 1));
     }, 1000);
 
-    return () => clearInterval(timerRef.current);
-  }, [loading, questions.length]);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [loading, questions.length, accessPending, categoryName, setNo]);
 
-  if (loading) return <div className="center">Loading questions...</div>;
-  if (!questions.length)
+  useEffect(() => {
+    if (loading || questions.length === 0 || accessPending || timeLeft > 0) {
+      return;
+    }
+    if (submittedRef.current) return;
+    submittedRef.current = true;
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    (async () => {
+      await persistAndNavigateResult(buildExamData());
+    })();
+  }, [
+    timeLeft,
+    loading,
+    questions.length,
+    accessPending,
+    buildExamData,
+    persistAndNavigateResult,
+  ]);
+
+  if (!categoryName || setNo == null) {
+    return (
+      <div className="center">Missing exam parameters. Go back and choose a set.</div>
+    );
+  }
+
+  if (loading || accessPending) {
+    return <div className="center">Loading questions...</div>;
+  }
+
+  if (!questions.length) {
     return <div className="center">No questions in this set.</div>;
+  }
 
   const currentQuestion = questions[currentIndex];
   const totalQuestions = questions.length;
   const answeredCount = Object.keys(userAnswers).length;
   const markedCount = flaggedQuestions.length;
 
+  const handleSubmitExam = async () => {
+    if (submittedRef.current) return;
+    const confirmSubmit = window.confirm(
+      "Are you sure you want to submit the exam?"
+    );
+    if (!confirmSubmit) return;
+    submittedRef.current = true;
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    await persistAndNavigateResult(buildExamData());
+  };
+
   const handleAnswer = (option) => {
-    setUserAnswers({ ...userAnswers, [currentQuestion.question]: option });
+    setUserAnswers((prev) => {
+      const next = { ...prev, [currentQuestion.question]: option };
+      answersRef.current = next;
+      return next;
+    });
   };
 
   const clearAnswer = () => {
@@ -75,84 +274,23 @@ export default function ExamPage() {
     setUserAnswers((prev) => {
       const next = { ...prev };
       delete next[qKey];
+      answersRef.current = next;
       return next;
     });
   };
 
   const toggleFlag = () => {
-    if (flaggedQuestions.includes(currentIndex)) {
-      setFlaggedQuestions(flaggedQuestions.filter((i) => i !== currentIndex));
-    } else {
-      setFlaggedQuestions([...flaggedQuestions, currentIndex]);
-    }
-  };
-
-  const calculateScore = () => {
-    let score = 0;
-    questions.forEach((q) => {
-      if (userAnswers[q.question] === q.correctAns) score++;
-    });
-    return score;
-  };
-
-  const buildExamData = () => {
-    const examId = `exam_${Date.now()}`;
-    // Prepare answers with correctAns
-    const answersWithCorrect = questions.map(q => ({
-      question: q.question,
-      yourAnswer: userAnswers[q.question] || null,
-      correctAnswer: q.correctAns
-    }));
-    const examData = {
-      category: categoryName,
-      setNo,
-      totalQuestions: questions.length,
-      score: calculateScore(),
-      answers: answersWithCorrect,
-      flaggedQuestions,
-      timestamp: Date.now(),
-    };
-    return { examId, examData };
-  };
-
-  const persistAndNavigateResult = async ({ examId, examData }) => {
-    if (!auth.currentUser) {
-      // 👇 Show custom popup
-      const saveChoice = window.confirm(
-        "Login to save your attempted history.\n\nClick OK to Login or Cancel to Skip."
-      );
-  
-      if (saveChoice) {
-        // navigate to login page and pass exam data so we can save after login
-        navigate("/login", { state: { examData, examId } });
+    setFlaggedQuestions((prev) => {
+      let next;
+      if (prev.includes(currentIndex)) {
+        next = prev.filter((i) => i !== currentIndex);
       } else {
-        // Just show result without saving
-        navigate("/result", { state: { ...examData, examId } });
+        next = [...prev, currentIndex];
       }
-      return;
-    }
-  
-    // If user is logged in, save exam
-    try {
-      const userId = auth.currentUser.uid;
-      await set(ref(db, `users/${userId}/attemptedExams/${examId}`), examData);
-      navigate("/result", { state: { ...examData, examId } });
-    } catch (err) {
-      console.error("Error storing exam:", err);
-    }
+      flaggedRef.current = next;
+      return next;
+    });
   };
-
-  const handleSubmitExam = async () => {
-    const confirmSubmit = window.confirm("Are you sure you want to submit the exam?");
-    if (!confirmSubmit) return;
-    await persistAndNavigateResult(buildExamData());
-  };
-
-  const handleAutoSubmitExam = async () => {
-    // Time ended: submit without extra confirmation
-    await persistAndNavigateResult(buildExamData());
-  };
-  
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
@@ -170,7 +308,10 @@ export default function ExamPage() {
         aria-hidden={!paletteOpen}
       />
 
-      <aside className={`palette ${paletteOpen ? "open" : ""}`} aria-label="Question palette">
+      <aside
+        className={`palette ${paletteOpen ? "open" : ""}`}
+        aria-label="Question palette"
+      >
         <div className="palette__header">
           <div className="palette__title">Questions</div>
           <button
@@ -211,7 +352,6 @@ export default function ExamPage() {
         </div>
       </aside>
 
-      {/* Main Question */}
       <div className="exam-main">
         <div className="exam-topbar">
           <button
@@ -224,14 +364,20 @@ export default function ExamPage() {
 
           <div className="topbar-title">
             <div className="topbar-title__main">{categoryName}</div>
-            <div className="topbar-title__sub">Set {setNo} • Q{currentIndex + 1}/{totalQuestions}</div>
+            <div className="topbar-title__sub">
+              Set {setNo} • Q{currentIndex + 1}/{totalQuestions}
+            </div>
           </div>
 
           <div className="topbar-right">
             <div className={`timer ${timeLeft <= 60 ? "danger" : ""}`}>
               {formatTime(timeLeft)}
             </div>
-            <button type="button" className="topbar-btn danger" onClick={handleSubmitExam}>
+            <button
+              type="button"
+              className="topbar-btn danger"
+              onClick={handleSubmitExam}
+            >
               Submit
             </button>
           </div>
@@ -260,10 +406,18 @@ export default function ExamPage() {
           </div>
 
           <div className="actions">
-            <button type="button" className="action-btn subtle" onClick={toggleFlag}>
+            <button
+              type="button"
+              className="action-btn subtle"
+              onClick={toggleFlag}
+            >
               {flaggedQuestions.includes(currentIndex) ? "Unmark" : "Mark"}
             </button>
-            <button type="button" className="action-btn subtle" onClick={clearAnswer}>
+            <button
+              type="button"
+              className="action-btn subtle"
+              onClick={clearAnswer}
+            >
               Clear
             </button>
             <div className="actions-spacer" />

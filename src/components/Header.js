@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { auth, db, ref, onValue, signOut } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
+import { useLanguage } from "../i18n";
 
 export default function Header() {
   const navigate = useNavigate();
@@ -10,6 +11,9 @@ export default function Header() {
   const [user, loading] = useAuthState(auth);
   const [userName, setUserName] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [langModalOpen, setLangModalOpen] = useState(false);
+  const [pendingLang, setPendingLang] = useState(null); // "hi" | "en" | null
+  const { lang, toggle, t } = useLanguage();
 
   // Fetch userName from Firebase when user is available
   useEffect(() => {
@@ -25,9 +29,9 @@ export default function Header() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Good Morning";
-    if (hour < 18) return "Good Afternoon";
-    return "Good Evening";
+    if (hour < 12) return t("greet_morning");
+    if (hour < 18) return t("greet_afternoon");
+    return t("greet_evening");
   };
 
   const handleLogout = async () => {
@@ -50,7 +54,7 @@ export default function Header() {
   if (loading) return null; // wait for auth to load
 
   const salutationText =
-    user && userName ? `${getGreeting()}, ${userName}` : "Welcome";
+    user && userName ? `${getGreeting()}, ${userName}` : t("welcome");
 
   return (
     <header className="app-header">
@@ -65,34 +69,46 @@ export default function Header() {
               to="/home"
               className={location.pathname === "/home" ? "active" : ""}
             >
-              Home
+              {t("header_home")}
             </Link>
             {user && (
               <>
                 <Link
+                  to="/plans"
+                  className={location.pathname === "/plans" ? "active" : ""}
+                >
+                  {t("header_plans")}
+                </Link>
+                <Link
                   to="/history"
                   className={location.pathname === "/history" ? "active" : ""}
                 >
-                  Attempted
+                  {t("header_attempted")}
                 </Link>
                 <Link
                   to="/profile"
                   className={location.pathname === "/profile" ? "active" : ""}
                 >
-                  Profile
+                  {t("header_profile")}
                 </Link>
                 <Link
                   to="/leaderboard"
                   className={location.pathname === "/leaderboard" ? "active" : ""}
                 >
-                  Leaderboard
+                  {t("header_leaderboard")}
+                </Link>
+                <Link
+                  to="/performance"
+                  className={location.pathname === "/performance" ? "active" : ""}
+                >
+                  {t("header_performance")}
                 </Link>
                 <button
                   type="button"
                   className="header-btn"
                   onClick={handleLogout}
                 >
-                  Logout
+                  {t("header_logout")}
                 </button>
               </>
             )}
@@ -101,10 +117,27 @@ export default function Header() {
                 to="/login"
                 className={location.pathname === "/login" ? "active" : ""}
               >
-                Login
+                {t("header_login")}
               </Link>
             )}
           </nav>
+
+          {location.pathname === "/home" && (
+            <button
+              type="button"
+              className="header-btn"
+              onClick={() => {
+                const next = lang === "en" ? "hi" : "en";
+                setPendingLang(next);
+                setLangModalOpen(true);
+              }}
+              aria-label="Toggle language"
+              title="Toggle language"
+              style={{ background: "rgba(2, 6, 23, 0.28)" }}
+            >
+              {lang === "en" ? "हिन्दी" : "English"}
+            </button>
+          )}
 
           <button
             type="button"
@@ -129,7 +162,7 @@ export default function Header() {
         aria-label="Menu"
       >
         <div className="side-drawer__header">
-          <div className="side-drawer__title">Menu</div>
+          <div className="side-drawer__title">{t("header_menu")}</div>
           <button
             type="button"
             className="side-drawer__close"
@@ -145,30 +178,42 @@ export default function Header() {
             to="/home"
             className={location.pathname === "/home" ? "active" : ""}
           >
-            Home
+            {t("header_home")}
           </Link>
           {user && (
             <>
               <Link
+                to="/plans"
+                className={location.pathname === "/plans" ? "active" : ""}
+              >
+                {t("header_plans")}
+              </Link>
+              <Link
                 to="/history"
                 className={location.pathname === "/history" ? "active" : ""}
               >
-                Attempted
+                {t("header_attempted")}
               </Link>
               <Link
                 to="/profile"
                 className={location.pathname === "/profile" ? "active" : ""}
               >
-                Profile
+                {t("header_profile")}
               </Link>
               <Link
                 to="/leaderboard"
                 className={location.pathname === "/leaderboard" ? "active" : ""}
               >
-                Leaderboard
+                {t("header_leaderboard")}
+              </Link>
+              <Link
+                to="/performance"
+                className={location.pathname === "/performance" ? "active" : ""}
+              >
+                {t("header_performance")}
               </Link>
               <button type="button" className="drawer-btn" onClick={handleLogout}>
-                Logout
+                {t("header_logout")}
               </button>
             </>
           )}
@@ -177,11 +222,76 @@ export default function Header() {
               to="/login"
               className={location.pathname === "/login" ? "active" : ""}
             >
-              Login
+              {t("header_login")}
             </Link>
           )}
         </nav>
       </aside>
+
+      {langModalOpen && (
+        <>
+          <div
+            className="side-overlay open"
+            onClick={() => setLangModalOpen(false)}
+            aria-hidden="true"
+          />
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              display: "grid",
+              placeItems: "center",
+              zIndex: 60,
+              padding: 16,
+            }}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div
+              className="card"
+              style={{
+                width: "min(520px, 92vw)",
+                padding: 16,
+                borderRadius: 14,
+                border: "1px solid #e7edf3",
+                boxShadow: "0 18px 60px rgba(2, 6, 23, 0.25)",
+              }}
+            >
+              <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 8 }}>
+                {pendingLang === "hi" ? "Change language?" : "Change language?"}
+              </div>
+              <div style={{ color: "#334155", whiteSpace: "pre-line" }}>
+                {pendingLang === "hi"
+                  ? t("lang_confirm_to_hi")
+                  : t("lang_confirm_to_en")}
+              </div>
+
+              <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => setLangModalOpen(false)}
+                  style={{ flex: 1 }}
+                >
+                  {t("common_cancel")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLangModalOpen(false);
+                    if (!pendingLang) return;
+                    // toggle only if we're actually switching
+                    if (pendingLang !== lang) toggle();
+                  }}
+                  style={{ flex: 1 }}
+                >
+                  {t("common_confirm")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </header>
   );
 }

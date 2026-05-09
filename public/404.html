@@ -4,9 +4,32 @@
     <meta charset="UTF-8" />
     <title>Redirecting...</title>
     <script type="text/javascript">
-      // Redirect to your main page (home) on 404
-      var redirect = "/home";
-      window.location.replace(redirect + window.location.hash);
+      // SPA refresh/deep-link support (e.g. GitHub Pages):
+      // Redirect unknown paths back to index.html, preserving the full route.
+      (function () {
+        // Works for:
+        // - Custom domains (root)
+        // - Project pages (e.g. /my-repo/) because we compute base path from /404.html location.
+        var fullPath =
+          window.location.pathname +
+          window.location.search +
+          window.location.hash;
+
+        var basePath = window.location.pathname;
+        // '/repo/404.html' -> '/repo/'
+        basePath = basePath.replace(/\/404\.html(\?.*)?$/, "/");
+        if (basePath === window.location.pathname) {
+          // Fallback: strip the last segment and keep trailing slash
+          basePath = basePath.replace(/\/[^/]*$/, "/");
+        }
+
+        var target =
+          window.location.origin +
+          basePath +
+          "?__spa_redirect__=" +
+          encodeURIComponent(fullPath);
+        window.location.replace(target);
+      })();
     </script>
   </head>
   <body>

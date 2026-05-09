@@ -2,11 +2,13 @@
 import React, { useEffect, useState } from "react";
 import { auth, db, ref, onValue } from "../firebase";
 import { useNavigate } from "react-router-dom";
+import { useLanguage } from "../i18n";
 
 export default function AttemptHistory() {
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   useEffect(() => {
     const userId = auth.currentUser?.uid;
@@ -21,14 +23,14 @@ export default function AttemptHistory() {
     });
   }, []);
 
-  if (loading) return <div className="center">Loading attempted exams...</div>;
-  if (!exams.length) return <div className="center">No attempted exams found.</div>;
+  if (loading) return <div className="center">{t("history_loading")}</div>;
+  if (!exams.length) return <div className="center">{t("history_none")}</div>;
 
   const formatDate = (ts) => new Date(ts).toLocaleString();
 
   return (
     <div className="attempt-history">
-      <h2>Attempted Exams</h2>
+      <h2>{t("history_title")}</h2>
       {exams.map(([examId, exam], idx) => (
         <div
           key={examId}
@@ -43,8 +45,12 @@ export default function AttemptHistory() {
           onClick={() => navigate("/detail", { state: { examId, exam } })}
         >
           <h3>{exam.category} — Set {exam.setNo}</h3>
-          <p>Score: {exam.score} / {exam.totalQuestions}</p>
-          <p>Attempted On: {formatDate(exam.timestamp)}</p>
+          <p>
+            {t("history_score")}: {exam.score} / {exam.totalQuestions}
+          </p>
+          <p>
+            {t("history_attempted_on")}: {formatDate(exam.timestamp)}
+          </p>
         </div>
       ))}
     </div>

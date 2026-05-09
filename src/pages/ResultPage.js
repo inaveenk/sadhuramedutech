@@ -1,10 +1,12 @@
 // src/pages/ResultPage.js
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useLanguage } from "../i18n";
 
 export default function ResultPage() {
   const { state } = useLocation();
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const score = state?.score ?? 0;
   const total = state?.totalQuestions ?? 0; // updated to match examData
@@ -33,16 +35,16 @@ export default function ResultPage() {
 
   return (
     <div>
-      <h2>Result</h2>
+      <h2>{t("result_title")}</h2>
       <div className="card center">
         <h3>{category} — Set {setNo}</h3>
         <p style={{ fontSize: 22 }}>
-          Score: <strong>{score}</strong> / {total}
+          {t("history_score")}: <strong>{score}</strong> / {total}
         </p>
         <div style={{ marginTop: 8 }}>
-          <button onClick={() => navigate("/home")}>Back to Home</button>
+          <button onClick={() => navigate("/home")}>{t("result_back_home")}</button>
           <button style={{ marginLeft: 8 }} onClick={handleViewAttemptedExam}>
-            View Attempted Exam
+            {t("result_view_attempt")}
           </button>
         </div>
       </div>

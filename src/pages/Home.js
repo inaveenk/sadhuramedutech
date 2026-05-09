@@ -1,8 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db, ref, onValue } from "../firebase";
 import "./Home.css";
 import { useAuthState } from "react-firebase-hooks/auth";
+import { isPaidPlan, subjectHasAttempt } from "../utils/examAccess";
+import { useLanguage } from "../i18n";
+import { getSubjectTitle } from "../utils/subjects";
 
 export default function Home() {
   const [subjects, setSubjects] = useState([]);
@@ -10,8 +13,31 @@ export default function Home() {
   const [leaderboardRows, setLeaderboardRows] = useState([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(true);
   const [loading, setLoading] = useState(true); // ✅ added
+  const [userPlan, setUserPlan] = useState("free");
+  const [allAttempts, setAllAttempts] = useState([]);
   const navigate = useNavigate();
   const [user] = useAuthState(auth);
+  const { lang, t } = useLanguage();
+
+  useEffect(() => {
+    if (!user?.uid) {
+      setUserPlan("free");
+      setAllAttempts([]);
+      return;
+    }
+    const userRef = ref(db, `users/${user.uid}`);
+    const unsubUser = onValue(userRef, (snap) => {
+      setUserPlan(snap.val()?.userPlan || "free");
+    });
+    const attemptsRef = ref(db, `users/${user.uid}/attemptedExams`);
+    const unsubAttempts = onValue(attemptsRef, (snap) => {
+      setAllAttempts(Object.values(snap.val() || {}));
+    });
+    return () => {
+      unsubUser();
+      unsubAttempts();
+    };
+  }, [user]);
 
   useEffect(() => {
     const subjectsRef = ref(db, "categories");
@@ -30,7 +56,7 @@ export default function Home() {
 
         return {
           key, // subjectKey
-          title: formatSubjectName(key),
+          title: getSubjectTitle(key, lang),
           totalSets,
           categoriesList,
         };
@@ -41,7 +67,7 @@ export default function Home() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [lang]);
 
   useEffect(() => {
     const userId = user?.uid;
@@ -133,8 +159,37 @@ export default function Home() {
     });
   }, []);
 
+  const paid = isPaidPlan(userPlan);
+
+  const isHindiSubject = (subjectTitle) => {
+    const s = String(subjectTitle || "");
+    return s.includes("हिंदी") || s.includes("हिन्दी");
+  };
+
+  const visibleSubjects = useMemo(() => {
+    return subjects.filter((s) =>
+      lang === "hi" ? isHindiSubject(s.title) : !isHindiSubject(s.title)
+    );
+  }, [subjects, lang]);
+
+  const subjectFreeLocked = useMemo(() => {
+    const map = {};
+    if (!user?.uid || paid) return map;
+    for (const sub of subjects) {
+      const names = sub.categoriesList || [];
+      map[sub.key] =
+        names.length > 0 && subjectHasAttempt(names, allAttempts);
+    }
+    return map;
+  }, [user?.uid, paid, subjects, allAttempts]);
+
   const handleSubjectClick = (subjectKey) => {
-    // ✅ EXACTLY like Android
+    if (subjectFreeLocked[subjectKey]) {
+      alert(
+        "You've used your free trial for this subject. Open your profile to upgrade and unlock everything."
+      );
+      return;
+    }
     navigate(`/categories/${subjectKey}`);
   };
 
@@ -154,16 +209,19 @@ export default function Home() {
       <div className="home__container">
         <section className="home__leaderboard">
           <div className="home__leaderboardLeft">
-            <div className="home__leaderboardTitle">Leaderboard Snapshot</div>
+            <div className="home__leaderboardTitle">
+              {t("home_leaderboard_snapshot")}
+            </div>
             {leaderboardLoading ? (
-              <div className="home__leaderboardMeta">Loading your rank...</div>
+              <div className="home__leaderboardMeta">{t("home_loading_rank")}</div>
             ) : (
               <div className="home__leaderboardMeta">
                 <span>
-                  Rank: {currentUserRank ? `#${currentUserRank}` : "Unranked"}
+                  {t("home_rank")}:{" "}
+                  {currentUserRank ? `#${currentUserRank}` : t("home_unranked")}
                 </span>
                 <span>
-                  Avg Marks:{" "}
+                  {t("home_avg_marks")}:{" "}
                   {currentUserAvgMarks == null
                     ? "—"
                     : currentUserAvgMarks.toFixed(1)}
@@ -176,38 +234,96 @@ export default function Home() {
             className="home__leaderboardBtn"
             onClick={() => navigate("/leaderboard")}
           >
-            View Full Leaderboard
+            {t("home_view_full_leaderboard")}
           </button>
         </section>
 
-        <h1 className="home__title">Choose Subject</h1>
+        <h1 className="home__title">{t("home_choose_subject")}</h1>
 
         {loading ? (
           <p className="home__status" aria-live="polite">
-            Loading subjects...
+            {t("home_loading_subjects")}
+          </p>
+        ) : visibleSubjects.length === 0 ? (
+          <p className="home__status" aria-live="polite">
+            {t("home_no_subjects")}
           </p>
         ) : (
           <div className="home__grid" role="list">
-            {subjects.map((sub) => (
+            {visibleSubjects.map((sub) => (
               (() => {
                 const st = subjectStats[sub.key];
                 const completed = st?.completed ?? 0;
                 const total = st?.total ?? sub.totalSets ?? 0;
                 const avgMarks = st?.avgMarks;
                 const avgText = avgMarks == null ? "—" : avgMarks.toFixed(1);
+                const locked = Boolean(subjectFreeLocked[sub.key]);
 
                 return (
               <button
                 key={sub.key}
                 type="button"
                 className="home__card"
-                onClick={() => handleSubjectClick(sub.key)}
+                onClick={() => {
+                  if (locked) return;
+                  handleSubjectClick(sub.key);
+                }}
                 role="listitem"
+                style={{
+                  opacity: locked ? 0.65 : 1,
+                  cursor: locked ? "not-allowed" : "pointer",
+                }}
               >
                 <div className="home__cardTitle">{sub.title}</div>
                 <div className="home__cardMeta">
-                  <span className="home__pill">{completed}/{total} Completed</span>
-                  <span className="home__pill">Average Marks {avgText}</span>
+                  <span className="home__pill">
+                    {completed}/{total} {t("home_completed")}
+                  </span>
+                  <span className="home__pill">
+                    {t("home_average_marks")} {avgText}
+                  </span>
+                  {!paid && !locked && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="home__pill"
+                      style={{ background: "#dcfce7", color: "#166534" }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate("/plans");
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          navigate("/plans");
+                        }
+                      }}
+                    >
+                      {t("home_buy_test_series")}
+                    </span>
+                  )}
+                  {locked && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="home__pill"
+                      style={{ background: "#fef3c7", color: "#92400e" }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate("/plans");
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          navigate("/plans");
+                        }
+                      }}
+                    >
+                      {t("home_buy_test_series")}
+                    </span>
+                  )}
                 </div>
               </button>
                 );
@@ -218,11 +334,4 @@ export default function Home() {
       </div>
     </div>
   );
-}
-
-function formatSubjectName(key) {
-  if (key === "IndianGK") return "Indian GK";
-  if (key === "HaryanaGK") return "Haryana GK";
-  if (key === "CET2025") return "CET-2025";
-  return key.replace(/_/g, " ");
 }

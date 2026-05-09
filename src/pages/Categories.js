@@ -1,17 +1,42 @@
 // src/pages/Categories.js
-import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import React, { useEffect, useState, useMemo } from "react";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import { auth, db, ref, onValue } from "../firebase";
 import AdBanner from "../components/AdBanner";
 import { useAuthState } from "react-firebase-hooks/auth";
+import { isPaidPlan, subjectHasAttempt } from "../utils/examAccess";
+import { useLanguage } from "../i18n";
 
 export default function Categories() {
   const { subjectKey } = useParams();
   const [categories, setCategories] = useState([]);
   const [categoryStats, setCategoryStats] = useState({});
   const [loading, setLoading] = useState(true);
+  const [userPlan, setUserPlan] = useState("free");
+  const [allAttempts, setAllAttempts] = useState([]);
   const navigate = useNavigate();
   const [user] = useAuthState(auth);
+  const { t } = useLanguage();
+
+  useEffect(() => {
+    if (!user?.uid) {
+      setUserPlan("free");
+      setAllAttempts([]);
+      return;
+    }
+    const userRef = ref(db, `users/${user.uid}`);
+    const unsubUser = onValue(userRef, (snap) => {
+      setUserPlan(snap.val()?.userPlan || "free");
+    });
+    const attemptsRef = ref(db, `users/${user.uid}/attemptedExams`);
+    const unsubAttempts = onValue(attemptsRef, (snap) => {
+      setAllAttempts(Object.values(snap.val() || {}));
+    });
+    return () => {
+      unsubUser();
+      unsubAttempts();
+    };
+  }, [user]);
 
   useEffect(() => {
     if (!subjectKey) return;
@@ -100,7 +125,25 @@ export default function Categories() {
     });
   }, [user, categories]);
 
+  const subjectCategoryNames = useMemo(
+    () => categories.map((c) => c.name).filter(Boolean),
+    [categories]
+  );
+
+  const freeSubjectLocked = useMemo(() => {
+    if (!user?.uid) return false;
+    if (isPaidPlan(userPlan)) return false;
+    if (subjectCategoryNames.length === 0) return false;
+    return subjectHasAttempt(subjectCategoryNames, allAttempts);
+  }, [user?.uid, userPlan, subjectCategoryNames, allAttempts]);
+
   const handleClick = (cat) => {
+    if (freeSubjectLocked) {
+      alert(
+        "You've used your free trial for this subject. Buy Test Series to continue."
+      );
+      return;
+    }
     navigate(`/sets/${encodeURIComponent(cat.name)}`, {
       state: {
         subjectKey,
@@ -120,11 +163,31 @@ export default function Categories() {
       </h2>
 
       {loading ? (
-        <p>Loading categories...</p>
+        <p>{t("categories_loading")}</p>
       ) : categories.length === 0 ? (
-        <p>No categories found</p>
+        <p>{t("categories_none")}</p>
       ) : (
-        <div className="tile-grid">
+        <>
+          {freeSubjectLocked && (
+            <div
+              style={{
+                padding: "12px 14px",
+                marginBottom: 14,
+                borderRadius: 10,
+                background: "#fef3c7",
+                border: "1px solid #f59e0b",
+                color: "#92400e",
+                fontSize: 14,
+              }}
+            >
+              {t("categories_free_trial_done")}{" "}
+              <Link to="/plans" style={{ fontWeight: 700 }}>
+                {t("home_buy_test_series")}
+              </Link>{" "}
+              {t("categories_buy_to_access")}
+            </div>
+          )}
+          <div className="tile-grid">
           {categories.map((cat) => (
             (() => {
               const st = categoryStats[cat.id];
@@ -139,26 +202,31 @@ export default function Categories() {
               return (
             <div
               key={cat.id}
-              className="tile category-tile"
+              className={`tile category-tile ${freeSubjectLocked ? "tile-disabled" : ""}`}
+              style={{
+                cursor: freeSubjectLocked ? "not-allowed" : "pointer",
+                opacity: freeSubjectLocked ? 0.7 : 1,
+              }}
               onClick={() => handleClick(cat)}
             >
               <h3>{cat.name}</h3>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 13, color: "#475569", fontWeight: 700 }}>
-                  {completed}/{total} Completed
+                  {completed}/{total} {t("home_completed")}
                 </span>
                 <span style={{ fontSize: 13, color: "#475569", fontWeight: 700 }}>
-                  Your Average Marks {avgText}
+                  {t("categories_your_avg")} {avgText}
                 </span>
                 <span style={{ fontSize: 13, color: "#475569", fontWeight: 700 }}>
-                  Average Marks {avgAttemptText}
+                  {t("categories_avg")} {avgAttemptText}
                 </span>
               </div>
             </div>
               );
             })()
           ))}
-        </div>
+          </div>
+        </>
       )}
       {categories.length > 0 && (
   <div style={{ marginTop: 24 }}>
