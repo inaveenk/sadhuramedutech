@@ -123,6 +123,18 @@ const DICT = {
       "No plans found. Add plans under Private/Plans in Firebase.",
     plans_price: "Price",
     plans_discount: "Discount",
+    plans_validity: "Validity",
+    plans_month: "month",
+    plans_months: "months",
+
+    plans_existing_title: "Your Test Series",
+    plans_existing_upgrade_hint:
+      "Your current plan is shown below. You can upgrade or extend by choosing any plan.",
+    plans_status_active: "Active",
+    plans_status_expired: "Expired",
+    plans_card_current: "Current plan",
+    plans_card_upgrade: "Upgrade",
+    plans_card_renew: "Renew",
 
     profile_title: "My Profile",
     profile_name: "Name",
@@ -130,9 +142,22 @@ const DICT = {
     profile_mobile: "Mobile",
     profile_plan: "Plan",
     profile_plan_start: "Plan Start Date",
+    profile_plan_end: "Plan End Date",
+    profile_plan_expired: "Expired",
     profile_unlock_line:
       "Buy Test Series to unlock: every set, every category, and re-attempts.",
+    profile_expired_line:
+      "Your Test Series has expired. Renew to unlock every set, every category, and re-attempts.",
     profile_upgrade_btn: "Upgrade (Buy Test Series)",
+    profile_renew_btn: "Renew Test Series",
+
+    home_plan_expired:
+      "Your Test Series has expired. Renew now to keep full access.",
+    home_plan_expires_in:
+      "Your Test Series expires in {n} days. Renew now to avoid interruption.",
+    home_plan_expires_tomorrow:
+      "Your Test Series expires tomorrow. Renew now to avoid interruption.",
+    home_renew_now: "Renew Now",
   },
   hi: {
     header_home: "होम",
@@ -252,6 +277,18 @@ const DICT = {
       "कोई प्लान नहीं मिला। Firebase में Private/Plans के अंदर प्लान जोड़ें।",
     plans_price: "कीमत",
     plans_discount: "छूट",
+    plans_validity: "वैधता",
+    plans_month: "महीना",
+    plans_months: "महीने",
+
+    plans_existing_title: "आपकी टेस्ट सीरीज़",
+    plans_existing_upgrade_hint:
+      "आपका वर्तमान प्लान नीचे दिखाया गया है। किसी भी प्लान को चुनकर अपग्रेड या एक्सटेंड कर सकते हैं।",
+    plans_status_active: "सक्रिय",
+    plans_status_expired: "समाप्त",
+    plans_card_current: "वर्तमान प्लान",
+    plans_card_upgrade: "अपग्रेड",
+    plans_card_renew: "रिन्यू",
 
     profile_title: "मेरी प्रोफ़ाइल",
     profile_name: "नाम",
@@ -259,9 +296,22 @@ const DICT = {
     profile_mobile: "मोबाइल",
     profile_plan: "प्लान",
     profile_plan_start: "प्लान शुरू होने की तारीख",
+    profile_plan_end: "प्लान समाप्ति तारीख",
+    profile_plan_expired: "समाप्त",
     profile_unlock_line:
       "हर सेट, हर श्रेणी और री-अटेम्प्ट अनलॉक करने के लिए टेस्ट सीरीज़ खरीदें।",
+    profile_expired_line:
+      "आपकी टेस्ट सीरीज़ समाप्त हो गई है। पूरी एक्सेस पाने के लिए रिन्यू करें।",
     profile_upgrade_btn: "अपग्रेड (टेस्ट सीरीज़ खरीदें)",
+    profile_renew_btn: "टेस्ट सीरीज़ रिन्यू करें",
+
+    home_plan_expired:
+      "आपकी टेस्ट सीरीज़ समाप्त हो गई है। पूरी एक्सेस के लिए अभी रिन्यू करें।",
+    home_plan_expires_in:
+      "आपकी टेस्ट सीरीज़ {n} दिनों में समाप्त हो रही है। बिना रुकावट जारी रखने के लिए अभी रिन्यू करें।",
+    home_plan_expires_tomorrow:
+      "आपकी टेस्ट सीरीज़ कल समाप्त हो रही है। बिना रुकावट जारी रखने के लिए अभी रिन्यू करें।",
+    home_renew_now: "अभी रिन्यू करें",
   },
 };
 

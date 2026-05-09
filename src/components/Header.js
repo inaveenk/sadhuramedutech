@@ -69,7 +69,9 @@ export default function Header() {
           </Link>
         </div>
 
-        <div className="header-actions">
+        <div
+          className={`header-actions${user ? " header-actions--with-menu" : ""}`}
+        >
           <nav className="nav" aria-label="Primary">
             <Link
               to="/home"
@@ -80,28 +82,10 @@ export default function Header() {
             {user && (
               <>
                 <Link
-                  to="/plans"
-                  className={location.pathname === "/plans" ? "active" : ""}
-                >
-                  {t("header_plans")}
-                </Link>
-                <Link
                   to="/history"
                   className={location.pathname === "/history" ? "active" : ""}
                 >
                   {t("header_attempted")}
-                </Link>
-                <Link
-                  to="/profile"
-                  className={location.pathname === "/profile" ? "active" : ""}
-                >
-                  {t("header_profile")}
-                </Link>
-                <Link
-                  to="/leaderboard"
-                  className={location.pathname === "/leaderboard" ? "active" : ""}
-                >
-                  {t("header_leaderboard")}
                 </Link>
                 <Link
                   to="/performance"
@@ -109,13 +93,6 @@ export default function Header() {
                 >
                   {t("header_performance")}
                 </Link>
-                <button
-                  type="button"
-                  className="header-btn"
-                  onClick={handleLogout}
-                >
-                  {t("header_logout")}
-                </button>
               </>
             )}
             {!user && (
@@ -145,15 +122,17 @@ export default function Header() {
             </button>
           )}
 
-          <button
-            type="button"
-            className="menu-btn"
-            aria-label={menuOpen ? "Close menu" : "Open menu"}
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((v) => !v)}
-          >
-            {menuOpen ? "×" : "≡"}
-          </button>
+          {user && (
+            <button
+              type="button"
+              className="menu-btn"
+              aria-label={menuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((v) => !v)}
+            >
+              {menuOpen ? "×" : "≡"}
+            </button>
+          )}
         </div>
       </div>
 

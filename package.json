@@ -22,7 +22,9 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d build"
+    "deploy": "gh-pages -d build",
+    "deploy:functions": "firebase deploy --only functions",
+    "firebase": "firebase"
   },
   "eslintConfig": {
     "extends": [
@@ -43,6 +45,7 @@
     ]
   },
   "devDependencies": {
+    "firebase-tools": "^13.34.1",
     "gh-pages": "^6.3.0",
     "html-webpack-plugin": "^5.6.4"
   }

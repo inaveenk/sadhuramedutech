@@ -4,7 +4,7 @@ import { useNavigate, useParams, Link } from "react-router-dom";
 import { auth, db, ref, onValue } from "../firebase";
 import AdBanner from "../components/AdBanner";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { isPaidPlan, subjectHasAttempt } from "../utils/examAccess";
+import { isPlanActive, subjectHasAttempt } from "../utils/examAccess";
 import { useLanguage } from "../i18n";
 
 export default function Categories() {
@@ -13,6 +13,7 @@ export default function Categories() {
   const [categoryStats, setCategoryStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [userPlan, setUserPlan] = useState("free");
+  const [planEndDate, setPlanEndDate] = useState(null);
   const [allAttempts, setAllAttempts] = useState([]);
   const navigate = useNavigate();
   const [user] = useAuthState(auth);
@@ -21,12 +22,15 @@ export default function Categories() {
   useEffect(() => {
     if (!user?.uid) {
       setUserPlan("free");
+      setPlanEndDate(null);
       setAllAttempts([]);
       return;
     }
     const userRef = ref(db, `users/${user.uid}`);
     const unsubUser = onValue(userRef, (snap) => {
-      setUserPlan(snap.val()?.userPlan || "free");
+      const v = snap.val() || {};
+      setUserPlan(v.userPlan || "free");
+      setPlanEndDate(v.planEndDate || null);
     });
     const attemptsRef = ref(db, `users/${user.uid}/attemptedExams`);
     const unsubAttempts = onValue(attemptsRef, (snap) => {
@@ -132,10 +136,10 @@ export default function Categories() {
 
   const freeSubjectLocked = useMemo(() => {
     if (!user?.uid) return false;
-    if (isPaidPlan(userPlan)) return false;
+    if (isPlanActive(userPlan, planEndDate)) return false;
     if (subjectCategoryNames.length === 0) return false;
     return subjectHasAttempt(subjectCategoryNames, allAttempts);
-  }, [user?.uid, userPlan, subjectCategoryNames, allAttempts]);
+  }, [user?.uid, userPlan, planEndDate, subjectCategoryNames, allAttempts]);
 
   const handleClick = (cat) => {
     if (freeSubjectLocked) {

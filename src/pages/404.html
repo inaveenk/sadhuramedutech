@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Redirecting...</title>
+    <script type="text/javascript">
+      // SPA refresh/deep-link support (e.g. GitHub Pages):
+      // Redirect unknown paths back to index.html, preserving the full route.
+      (function () {
+        // IMPORTANT:
+        // On GitHub Pages, 404.html is served at the *requested* URL, so
+        // window.location.pathname is the missing route (e.g. /sets/...), not /404.html.
+        // For custom domains we always redirect to '/' and restore the route from a query param.
+
+        var search = window.location.search || "";
+        var params;
+        try {
+          params = new URLSearchParams(search);
+        } catch (e) {
+          params = null;
+        }
+
+        // If we already have __spa_redirect__ (nested redirect), unwrap it once.
+        var nested = params && params.get("__spa_redirect__");
+        var fullPath = nested
+          ? decodeURIComponent(nested)
+          : window.location.pathname + window.location.search + window.location.hash;
+
+        var target =
+          window.location.origin +
+          "/" +
+          "?__spa_redirect__=" +
+          encodeURIComponent(fullPath);
+        window.location.replace(target);
+      })();
+    </script>
+  </head>
+  <body>
+    <p>Redirecting...</p>
+  </body>
+</html>

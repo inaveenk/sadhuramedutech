@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { auth, functions, httpsCallable } from "../firebase";
 import { useLanguage } from "../i18n";
 import AppLogo from "../components/AppLogo";
+import { readValidityMonths } from "../utils/planValidity";
 
 function loadRazorpayScript() {
   return new Promise((resolve) => {
@@ -33,6 +34,7 @@ export default function Payment() {
 
   const plan = useMemo(() => location.state?.plan || null, [location.state]);
   const payable = Number(plan?.finalPrice || plan?.price || 0);
+  const validityMonths = useMemo(() => readValidityMonths(plan), [plan]);
 
   useEffect(() => {
     setUiError("");
@@ -104,6 +106,7 @@ export default function Payment() {
           price: Number(plan.price || 0),
           discountPercentage: Number(plan.discountPercentage || 0),
           finalPrice: payable,
+          validity: validityMonths,
         },
         lang,
       });
@@ -239,6 +242,12 @@ export default function Payment() {
           <div>Price: ₹{Number(plan.price || 0)}</div>
           {Number(plan.discountPercentage || 0) > 0 && (
             <div>Discount: {Number(plan.discountPercentage || 0)}%</div>
+          )}
+          {validityMonths > 0 && (
+            <div>
+              Validity: {validityMonths}{" "}
+              {validityMonths === 1 ? "month" : "months"}
+            </div>
           )}
           <div style={{ marginTop: 6, fontSize: 18, fontWeight: 900 }}>
             Payable: ₹{payable}

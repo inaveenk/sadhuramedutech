@@ -5,7 +5,7 @@ import { auth, db, ref, onValue } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import {
   getSetDifficultyLabel,
-  isPaidPlan,
+  isPlanActive,
   findSubjectKeyForCategory,
   categoryNamesForSubject,
   subjectHasAttempt,
@@ -23,6 +23,7 @@ export default function Sets() {
   const [loading, setLoading] = useState(true);
   const [rawAttempts, setRawAttempts] = useState([]);
   const [userPlan, setUserPlan] = useState("free");
+  const [planEndDate, setPlanEndDate] = useState(null);
   const [subjectKey, setSubjectKey] = useState(
     location.state?.subjectKey || null
   );
@@ -56,10 +57,13 @@ export default function Sets() {
   useEffect(() => {
     if (!user?.uid) {
       setUserPlan("free");
+      setPlanEndDate(null);
       return;
     }
     return onValue(ref(db, `users/${user.uid}`), (snap) => {
-      setUserPlan(snap.val()?.userPlan || "free");
+      const v = snap.val() || {};
+      setUserPlan(v.userPlan || "free");
+      setPlanEndDate(v.planEndDate || null);
     });
   }, [user]);
 
@@ -181,12 +185,12 @@ export default function Sets() {
 
   const freeSubjectLocked = useMemo(() => {
     if (!user?.uid) return false;
-    if (isPaidPlan(userPlan)) return false;
+    if (isPlanActive(userPlan, planEndDate)) return false;
     if (subjectCategoryNames.length === 0) return false;
     return subjectHasAttempt(subjectCategoryNames, rawAttempts);
-  }, [user?.uid, userPlan, subjectCategoryNames, rawAttempts]);
+  }, [user?.uid, userPlan, planEndDate, subjectCategoryNames, rawAttempts]);
 
-  const paid = isPaidPlan(userPlan);
+  const paid = isPlanActive(userPlan, planEndDate);
 
   const handleSetClick = (set) => {
     navigate("/exam", {

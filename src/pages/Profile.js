@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { auth, db, ref, onValue } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useNavigate } from "react-router-dom";
-import { isPaidPlan } from "../utils/examAccess";
+import { isPaidPlan, isPlanExpired } from "../utils/examAccess";
 import { useLanguage } from "../i18n";
 
 export default function Profile() {
@@ -31,6 +31,14 @@ export default function Profile() {
   if (!user) return null;
 
   const paid = isPaidPlan(userData.userPlan);
+  const expired = paid && isPlanExpired(userData.planEndDate);
+  const showUpgrade = !paid || expired;
+
+  const planLabel = paid
+    ? expired
+      ? `${userData.userPlan} (${t("profile_plan_expired")})`
+      : userData.userPlan
+    : userData.userPlan || "-";
 
   return (
     <div
@@ -58,7 +66,15 @@ export default function Profile() {
           <strong>{t("profile_mobile")}:</strong> {userData.mobile || "-"}
         </p>
         <p>
-          <strong>{t("profile_plan")}:</strong> {userData.userPlan || "-"}
+          <strong>{t("profile_plan")}:</strong>{" "}
+          <span
+            style={{
+              color: expired ? "#991b1b" : "inherit",
+              fontWeight: expired ? 800 : "inherit",
+            }}
+          >
+            {planLabel}
+          </span>
         </p>
         <p>
           <strong>{t("profile_plan_start")}:</strong>{" "}
@@ -66,17 +82,27 @@ export default function Profile() {
             ? new Date(userData.planStartDate).toLocaleString()
             : "-"}
         </p>
+        <p>
+          <strong>{t("profile_plan_end")}:</strong>{" "}
+          {userData.planEndDate
+            ? new Date(userData.planEndDate).toLocaleString()
+            : "-"}
+        </p>
 
-        {!paid && (
+        {showUpgrade && (
           <div style={{ marginTop: "20px", paddingTop: "16px", borderTop: "1px solid #e2e8f0" }}>
             <p style={{ margin: "0 0 12px", color: "#475569", fontSize: 14 }}>
-              {t("profile_unlock_line")}
+              {expired
+                ? t("profile_expired_line")
+                : t("profile_unlock_line")}
             </p>
             <button
               type="button"
               onClick={goToPlans}
             >
-              {t("profile_upgrade_btn")}
+              {expired
+                ? t("profile_renew_btn")
+                : t("profile_upgrade_btn")}
             </button>
           </div>
         )}

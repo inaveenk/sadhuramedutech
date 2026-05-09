@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { db, ref, onValue, set, get } from "../firebase";
 import { auth } from "../firebase";
 import {
-  isPaidPlan,
+  isPlanActive,
   findSubjectKeyForCategory,
   categoryNamesForSubject,
   subjectHasAttempt,
@@ -137,7 +137,7 @@ export default function ExamPage() {
       if (cancelled) return;
       const userData = userSnap.val() || {};
 
-      if (isPaidPlan(userData.userPlan)) {
+      if (isPlanActive(userData.userPlan, userData.planEndDate)) {
         setAccessPending(false);
         return;
       }

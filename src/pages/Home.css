@@ -7,6 +7,64 @@
   margin: 0 auto;
 }
 
+.home__planBanner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  border: 1px solid transparent;
+  font-weight: 700;
+  box-shadow: 0 6px 14px rgba(2, 6, 23, 0.05);
+}
+
+.home__planBanner--warning {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #9a3412;
+}
+
+.home__planBanner--expired {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.home__planBannerText {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.home__planBannerBtn {
+  border: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-weight: 800;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+  background: #0f172a;
+  color: #fff;
+}
+
+.home__planBanner--expired .home__planBannerBtn {
+  background: #b91c1c;
+}
+
+@media (max-width: 480px) {
+  .home__planBanner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .home__planBannerBtn {
+    width: 100%;
+  }
+}
+
 .home__leaderboard {
   display: flex;
   justify-content: space-between;

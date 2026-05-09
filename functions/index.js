@@ -1,15 +1,55 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
-const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const crypto = require("crypto");
 const Razorpay = require("razorpay");
 
 admin.initializeApp();
 
-/** Gen2: Secret Manager only (no functions.config). Local: optional functions/.env */
-const razorpayKeyId = defineSecret("RAZORPAY_KEY_ID");
-const razorpayKeySecret = defineSecret("RAZORPAY_KEY_SECRET");
+/** Same rules as src/utils/planValidity.js — keep in sync when changing keys. */
+function readValidityMonths(obj) {
+  if (!obj || typeof obj !== "object") return 0;
+  const candidates = [
+    obj.validity,
+    obj.validityMonths,
+    obj.months,
+    obj.durationMonths,
+    obj.Validity,
+  ];
+  for (const raw of candidates) {
+    if (raw == null || raw === "") continue;
+    const v = typeof raw === "string" ? raw.trim() : raw;
+    const n = Number(v);
+    if (!Number.isFinite(n) || n < 0) continue;
+    return Math.round(n);
+  }
+  return 0;
+}
 
+function hasValidityField(obj) {
+  if (!obj || typeof obj !== "object") return false;
+  const keys = [
+    "validity",
+    "validityMonths",
+    "months",
+    "durationMonths",
+    "Validity",
+  ];
+  return keys.some((k) => obj[k] != null && obj[k] !== "");
+}
+
+/**
+ * Gen2: never use firebase-functions/v1 `functions.config()` — it throws.
+ *
+ * Razorpay: **`functions/.env`** (gitignored). Firebase CLI loads it when you deploy
+ * and attaches `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` to the Cloud Run service.
+ * If you skip Secret Manager entirely, edit `.env` then always:
+ * `firebase deploy --only functions`
+ *
+ * **Before deploy**, run locally: `cd functions && npm run verify-razorpay` — if that
+ * says FAIL, Razorpay will reject prod too (wrong key pair or test/live mismatch).
+ *
+ * Secret Manager variant: optional; GSM does not read `functions/.env` unless you wire `defineSecret`.
+ */
 const callOpts = {
   region: "us-central1",
   cors: true,
@@ -17,7 +57,6 @@ const callOpts = {
   // Default 60s can lose the race vs cold start + Razorpay; client then errors
   // even after the server finished and wrote payments/.../orders.
   timeoutSeconds: 120,
-  secrets: [razorpayKeyId, razorpayKeySecret],
 };
 
 /** Razorpay receipt: max 40 chars; use safe subset to avoid API rejection. */
@@ -32,14 +71,26 @@ function razorpayReceiptFromInternalId(internalOrderId) {
   return h;
 }
 
+/** Normalize env vars (quotes / stray BOM some editors add to .env). */
+function razorpayEnv(name) {
+  let v = String(process.env[name] || "").trim();
+  if (!v.length) return "";
+  const noBom = v.charCodeAt(0) === 0xfeff ? v.slice(1).trim() : v;
+  v = noBom;
+  if (
+    (v.startsWith('"') && v.endsWith('"')) ||
+    (v.startsWith("'") && v.endsWith("'"))
+  ) {
+    v = v.slice(1, -1).trim();
+  }
+  return v;
+}
+
 function getRazorpayConfig() {
-  const key_id = String(
-    razorpayKeyId.value() || process.env.RAZORPAY_KEY_ID || ""
-  ).trim();
-  const key_secret = String(
-    razorpayKeySecret.value() || process.env.RAZORPAY_KEY_SECRET || ""
-  ).trim();
-  return { key_id, key_secret };
+  return {
+    key_id: razorpayEnv("RAZORPAY_KEY_ID"),
+    key_secret: razorpayEnv("RAZORPAY_KEY_SECRET"),
+  };
 }
 
 function getRazorpay() {
@@ -47,7 +98,7 @@ function getRazorpay() {
   if (!key_id || !key_secret) {
     throw new HttpsError(
       "failed-precondition",
-      "Razorpay keys missing. Set secrets RAZORPAY_KEY_ID + RAZORPAY_KEY_SECRET (npx firebase-tools functions:secrets:set) or functions/.env for emulator, then deploy --only functions."
+      "Razorpay keys missing. Put RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in functions/.env then firebase deploy --only functions. Test locally first: npm run verify-razorpay"
     );
   }
   return new Razorpay({ key_id, key_secret });
@@ -57,6 +108,12 @@ function unwrapCallableError(e) {
   if (e instanceof HttpsError) return e;
   const msg = (e && e.message) || String(e);
   console.error("createRazorpayOrder unexpected error:", msg, e && e.stack);
+  if (/functions\.config\(\) is no longer available/i.test(msg)) {
+    return new HttpsError(
+      "failed-precondition",
+      "Deployed function is outdated (Gen2 does not support functions.config). Redeploy: firebase deploy --only functions."
+    );
+  }
   return new HttpsError(
     "failed-precondition",
     msg.length > 220 ? `${msg.slice(0, 220)}…` : msg
@@ -95,6 +152,13 @@ async function createRazorpayOrderImpl(request) {
 
   const amountPaise = Math.round(amountRupees * 100);
   const currency = "INR";
+  // Razorpay commonly enforces a minimum (e.g. ₹1 = 100 paise) for INR orders.
+  if (amountPaise < 100) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Amount must be at least ₹1 (100 paise) for Razorpay."
+    );
+  }
 
   const internalOrderRef = admin
     .database()
@@ -123,6 +187,7 @@ async function createRazorpayOrderImpl(request) {
         price: Number(plan?.price || 0),
         discountPercentage: Number(plan?.discountPercentage || 0),
         finalPrice: Number(plan?.finalPrice || amountRupees),
+        validity: readValidityMonths(plan || {}),
       },
     });
   } catch (dbErr) {
@@ -149,12 +214,21 @@ async function createRazorpayOrderImpl(request) {
       },
     });
   } catch (err) {
-    console.error("Razorpay orders.create failed:", err);
+    const { key_id: kid, key_secret: ksec } = getRazorpayConfig();
+    console.error(
+      "Razorpay orders.create failed:",
+      err,
+      "| key_id prefix:",
+      kid ? `${kid.slice(0, 10)}…` : "(empty)",
+      "secret_len:",
+      ksec.length
+    );
     const desc =
       err?.error?.description ||
       err?.error?.field ||
       err?.message ||
       (typeof err === "string" ? err : "Razorpay request failed");
+    const http = err?.statusCode != null ? ` (HTTP ${err.statusCode})` : "";
     await internalOrderRef
       .update({
         status: "razorpay_create_failed",
@@ -165,7 +239,7 @@ async function createRazorpayOrderImpl(request) {
     // Use failed-precondition so the client shows the message (not generic INTERNAL).
     throw new HttpsError(
       "failed-precondition",
-      `Razorpay: ${desc}`
+      `Razorpay: ${desc}${http}`
     );
   }
 
@@ -248,9 +322,39 @@ exports.verifyRazorpayPayment = onCall(callOpts, async (request) => {
   });
 
   const plan = order.plan || {};
+
+  // Re-read validity from Private/Plans so a tampered client payload can't
+  // extend duration — but only replace when RTDB explicitly defines validity
+  // (alternate keys supported). If absent, keep the value stored with the order.
+  let validityMonths = readValidityMonths(plan);
+  if (plan.id) {
+    try {
+      const planSnap = await admin
+        .database()
+        .ref(`Private/Plans/${plan.id}`)
+        .get();
+      const serverPlan = planSnap.val();
+      if (serverPlan && hasValidityField(serverPlan)) {
+        validityMonths = readValidityMonths(serverPlan);
+      }
+    } catch (e) {
+      console.warn("Could not read plan validity from Private/Plans:", e?.message);
+    }
+  }
+
+  const planStartDate = new Date();
+  let planEndDate = null;
+  if (Number.isFinite(validityMonths) && validityMonths > 0) {
+    const end = new Date(planStartDate.getTime());
+    end.setMonth(end.getMonth() + Math.round(validityMonths));
+    planEndDate = end.toISOString();
+  }
+
   await admin.database().ref(`users/${uid}`).update({
     userPlan: "testseries",
-    planStartDate: new Date().toISOString(),
+    planStartDate: planStartDate.toISOString(),
+    planEndDate: planEndDate,
+    planValidityMonths: Number.isFinite(validityMonths) ? validityMonths : 0,
     planId: plan.id || null,
     planName: plan.testSeriesName || null,
     planPrice: Number(plan.price || 0),
@@ -261,5 +365,5 @@ exports.verifyRazorpayPayment = onCall(callOpts, async (request) => {
     latestInternalOrderId: internalOrderId,
   });
 
-  return { ok: true };
+  return { ok: true, planEndDate };
 });

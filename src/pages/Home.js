@@ -3,7 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { auth, db, ref, onValue } from "../firebase";
 import "./Home.css";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { isPaidPlan, subjectHasAttempt } from "../utils/examAccess";
+import {
+  isPaidPlan,
+  isPlanActive,
+  isPlanExpired,
+  daysUntilExpiry,
+  subjectHasAttempt,
+} from "../utils/examAccess";
 import { useLanguage } from "../i18n";
 import { getSubjectTitle } from "../utils/subjects";
 
@@ -14,6 +20,7 @@ export default function Home() {
   const [leaderboardLoading, setLeaderboardLoading] = useState(true);
   const [loading, setLoading] = useState(true); // ✅ added
   const [userPlan, setUserPlan] = useState("free");
+  const [planEndDate, setPlanEndDate] = useState(null);
   const [allAttempts, setAllAttempts] = useState([]);
   const navigate = useNavigate();
   const [user] = useAuthState(auth);
@@ -22,12 +29,15 @@ export default function Home() {
   useEffect(() => {
     if (!user?.uid) {
       setUserPlan("free");
+      setPlanEndDate(null);
       setAllAttempts([]);
       return;
     }
     const userRef = ref(db, `users/${user.uid}`);
     const unsubUser = onValue(userRef, (snap) => {
-      setUserPlan(snap.val()?.userPlan || "free");
+      const v = snap.val() || {};
+      setUserPlan(v.userPlan || "free");
+      setPlanEndDate(v.planEndDate || null);
     });
     const attemptsRef = ref(db, `users/${user.uid}/attemptedExams`);
     const unsubAttempts = onValue(attemptsRef, (snap) => {
@@ -159,7 +169,20 @@ export default function Home() {
     });
   }, []);
 
-  const paid = isPaidPlan(userPlan);
+  const paid = isPlanActive(userPlan, planEndDate);
+  const planIsPaidType = isPaidPlan(userPlan);
+  const expired = planIsPaidType && isPlanExpired(planEndDate);
+  const daysLeft = planIsPaidType ? daysUntilExpiry(planEndDate) : null;
+  // Show "about to expire" banner when there are 7 or fewer days remaining
+  // (and plan hasn't already lapsed). Threshold matches a typical renewal nudge window.
+  const EXPIRY_WARNING_DAYS = 7;
+  const showExpiringBanner =
+    planIsPaidType &&
+    !expired &&
+    daysLeft != null &&
+    daysLeft > 0 &&
+    daysLeft <= EXPIRY_WARNING_DAYS;
+  const showExpiredBanner = expired;
 
   const isHindiSubject = (subjectTitle) => {
     const s = String(subjectTitle || "");
@@ -207,6 +230,33 @@ export default function Home() {
   return (
     <div className="home">
       <div className="home__container">
+        {(showExpiringBanner || showExpiredBanner) && (
+          <div
+            role="alert"
+            className={
+              showExpiredBanner
+                ? "home__planBanner home__planBanner--expired"
+                : "home__planBanner home__planBanner--warning"
+            }
+          >
+            <div className="home__planBannerText">
+              {showExpiredBanner
+                ? t("home_plan_expired")
+                : daysLeft === 1
+                  ? t("home_plan_expires_tomorrow")
+                  : t("home_plan_expires_in").replace("{n}", String(daysLeft))}
+            </div>
+            <button
+              type="button"
+              className="home__planBannerBtn"
+              onClick={() => navigate("/plans")}
+            >
+              {showExpiredBanner
+                ? t("home_renew_now")
+                : t("home_renew_now")}
+            </button>
+          </div>
+        )}
         <section className="home__leaderboard">
           <div className="home__leaderboardLeft">
             <div className="home__leaderboardTitle">
