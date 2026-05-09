@@ -60,6 +60,30 @@ header.app-header .header-inner {
   gap: 12px;
 }
 
+header.app-header .header-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+header.app-header a.header-logo-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 12px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  line-height: 0;
+}
+
+header.app-header a.header-logo-link:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
 header.app-header a.header-salutation {
   color: #fff;
   text-decoration: none;
@@ -166,8 +190,27 @@ header.app-header .menu-btn {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   padding: 14px 14px 10px;
   border-bottom: 1px solid #e7edf3;
+}
+
+.side-drawer__header-start {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.side-drawer__logo {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  line-height: 0;
+  border-radius: 10px;
+  padding: 4px;
+  border: 1px solid #e7edf3;
+  background: #f8fafc;
 }
 
 .side-drawer__title {
@@ -255,6 +298,26 @@ footer.app-footer {
   font-size: 14px;
   color: #555;
   border-top: 1px solid #ddd;
+}
+
+.footer-brand-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.auth-logo-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.auth-page .page-title {
+  text-align: center;
 }
 
 /* =========================
@@ -625,4 +688,224 @@ a:hover {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* =========================
+   PUBLIC LEGAL PAGES (Razorpay / compliance)
+========================= */
+
+.public-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f6f7fb;
+}
+
+.public-shell-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(2, 132, 199, 0.2);
+}
+
+.public-shell-header-inner {
+  width: min(1100px, 92%);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  flex-wrap: wrap;
+}
+
+.public-shell-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 900;
+  color: #fff !important;
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  padding: 6px 12px 6px 6px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.public-shell-brand-text {
+  white-space: nowrap;
+}
+
+.public-shell-brand:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.public-shell-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.public-shell-nav a {
+  color: #fff !important;
+  text-decoration: none;
+  padding: 7px 10px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.public-shell-nav a:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.public-shell-nav a.active {
+  background: rgba(255, 255, 255, 0.26);
+}
+
+.public-shell-main {
+  flex: 1;
+  padding: 18px 0 28px;
+}
+
+.legal-container {
+  max-width: 720px;
+}
+
+.legal-page-title {
+  margin-bottom: 12px;
+  font-size: clamp(1.35rem, 3vw, 1.75rem);
+}
+
+.legal-document {
+  padding: 20px 22px 28px;
+  text-align: left;
+  line-height: 1.65;
+  color: #334155;
+}
+
+.legal-document h2 {
+  margin: 1.35em 0 0.5em;
+  font-size: 1.08rem;
+  color: #0f172a;
+}
+
+.legal-document h2:first-of-type {
+  margin-top: 0.75em;
+}
+
+.legal-document p,
+.legal-document li {
+  font-size: 15px;
+}
+
+.legal-document ul {
+  padding-left: 1.25rem;
+  margin: 0.5em 0 0;
+}
+
+.legal-meta {
+  font-size: 14px !important;
+  color: #64748b !important;
+  margin-top: 0 !important;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 16px !important;
+}
+
+.contact-highlight {
+  margin: 0 0 20px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(14, 165, 233, 0.08),
+    rgba(37, 99, 235, 0.08)
+  );
+  border: 1px solid rgba(37, 99, 235, 0.2);
+}
+
+.contact-email-link {
+  font-weight: 900;
+  font-size: 1.1rem;
+  word-break: break-all;
+}
+
+.contact-note {
+  margin: 10px 0 0 !important;
+  font-size: 14px !important;
+  color: #475569 !important;
+}
+
+.public-shell-footer {
+  margin-top: auto;
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 16px;
+  font-size: 13px;
+}
+
+.public-shell-footer a {
+  color: #7dd3fc !important;
+}
+
+.public-shell-footer-inner {
+  width: min(1100px, 92%);
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.public-shell-footer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+
+@media (max-width: 640px) {
+  .public-shell-nav {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+/* App footer: legal links */
+.footer-legal-row {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #ddd;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 14px;
+  font-size: 13px;
+}
+
+.footer-legal-row a {
+  font-weight: 700;
+}
+
+/* Login / register */
+.auth-legal-mini {
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid #e5e7eb;
+  text-align: center;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.auth-legal-mini a {
+  font-weight: 700;
+  margin: 0 4px;
 }

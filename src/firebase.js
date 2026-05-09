@@ -8,6 +8,7 @@ import {
   onAuthStateChanged as firebaseOnAuthStateChanged,
 } from "firebase/auth";
 import { getDatabase, ref, set, push, get, child, onValue, update } from "firebase/database";
+import { getFunctions, httpsCallable } from "firebase/functions";
 
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
@@ -22,10 +23,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app); // ✅ do not hardcode URL here
+// Callable functions are deployed in us-central1; region must match.
+const functions = getFunctions(app, "us-central1");
 
 export {
   auth,
   db,
+  functions,
+  httpsCallable,
   ref,
   set,
   push,

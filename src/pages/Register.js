@@ -1,12 +1,13 @@
 // src/pages/Register.js
 import React, { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { ref, set as firebaseSet } from "firebase/database";
 import PinInput from "../components/PinInput";
 import { useLanguage } from "../i18n";
 import { authErrorToKey } from "../utils/authErrors";
+import AppLogo from "../components/AppLogo";
 
 export default function Register() {
   const location = useLocation();
@@ -90,7 +91,10 @@ export default function Register() {
   };
 
   return (
-    <div className="container">
+    <div className="container auth-page">
+      <div className="auth-logo-row">
+        <AppLogo size={72} />
+      </div>
       <h2 className="page-title">{t("register_title")}</h2>
       {incomingMessage ? (
         <div
@@ -181,6 +185,14 @@ export default function Register() {
           Login
         </button>
       </p>
+
+      <div className="auth-legal-mini">
+        By registering you agree to our{" "}
+        <Link to="/terms">Terms</Link> &amp;{" "}
+        <Link to="/privacy-policy">Privacy Policy</Link>.{" "}
+        <Link to="/refund-policy">Refunds</Link> ·{" "}
+        <Link to="/contact">Contact</Link>
+      </div>
     </div>
   );
 }

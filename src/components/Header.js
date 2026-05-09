@@ -4,6 +4,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { auth, db, ref, onValue, signOut } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useLanguage } from "../i18n";
+import AppLogo from "./AppLogo";
 
 export default function Header() {
   const navigate = useNavigate();
@@ -59,9 +60,14 @@ export default function Header() {
   return (
     <header className="app-header">
       <div className="header-inner">
-        <Link to="/home" className="header-salutation">
-          {salutationText}
-        </Link>
+        <div className="header-brand">
+          <Link to="/home" className="header-logo-link" aria-label="Practice Papers — Home">
+            <AppLogo size={42} />
+          </Link>
+          <Link to="/home" className="header-salutation">
+            {salutationText}
+          </Link>
+        </div>
 
         <div className="header-actions">
           <nav className="nav" aria-label="Primary">
@@ -162,7 +168,17 @@ export default function Header() {
         aria-label="Menu"
       >
         <div className="side-drawer__header">
-          <div className="side-drawer__title">{t("header_menu")}</div>
+          <div className="side-drawer__header-start">
+            <Link
+              to="/home"
+              className="side-drawer__logo"
+              onClick={() => setMenuOpen(false)}
+              aria-label="Home"
+            >
+              <AppLogo size={36} />
+            </Link>
+            <div className="side-drawer__title">{t("header_menu")}</div>
+          </div>
           <button
             type="button"
             className="side-drawer__close"

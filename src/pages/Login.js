@@ -1,11 +1,12 @@
 // src/pages/Login.js
 import React, { useState } from "react";
-import { useNavigate, Link, useLocation } from "react-router-dom"; // 👈 added useLocation
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { auth, signInWithEmailAndPassword } from "../firebase";
 import { db, ref, set } from "../firebase";
 import PinInput from "../components/PinInput";
 import { useLanguage } from "../i18n";
 import { authErrorToKey } from "../utils/authErrors";
+import AppLogo from "../components/AppLogo";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -63,7 +64,10 @@ export default function Login() {
   };
 
   return (
-    <div className="container">
+    <div className="container auth-page">
+      <div className="auth-logo-row">
+        <AppLogo size={72} />
+      </div>
       <h2 className="page-title">{t("login_title")}</h2>
       {formError ? (
         <div
@@ -108,6 +112,12 @@ export default function Login() {
       <p className="center" style={{ marginTop: "12px" }}>
         Don't have an account? <Link to="/register">Register</Link>
       </p>
+
+      <div className="auth-legal-mini">
+        <Link to="/privacy-policy">Privacy</Link> ·{" "}
+        <Link to="/refund-policy">Refunds</Link> ·{" "}
+        <Link to="/terms">Terms</Link> · <Link to="/contact">Contact</Link>
+      </div>
     </div>
   );
 }

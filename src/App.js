@@ -20,6 +20,10 @@ import Leaderboard from "./pages/Leaderboard";
 import Plans from "./pages/Plans";
 import Payment from "./pages/Payment";
 import Performance from "./pages/Performance";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import RefundPolicy from "./pages/RefundPolicy";
+import TermsAndConditions from "./pages/TermsAndConditions";
+import Contact from "./pages/Contact";
 
 function App() {
   return (
@@ -28,6 +32,10 @@ function App() {
       {/* ================= PUBLIC ROUTES ================= */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/refund-policy" element={<RefundPolicy />} />
+      <Route path="/terms" element={<TermsAndConditions />} />
+      <Route path="/contact" element={<Contact />} />
 
       {/* ================= PRIVATE APP ================= */}
       <Route

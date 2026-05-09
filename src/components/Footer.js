@@ -1,5 +1,7 @@
 // src/components/Footer.js
 import React, { useEffect } from "react";
+import { Link } from "react-router-dom";
+import AppLogo from "./AppLogo";
 
 export default function Footer() {
   useEffect(() => {
@@ -27,13 +29,26 @@ export default function Footer() {
       </div>
 
       {/* Footer text */}
-      <div>
+      <div className="footer-brand-line">
+        <AppLogo size={36} className="footer-logo" />
+        <div>
         Copyright © Designed and Developed by{" "}
         <span style={{ fontWeight: 600 }}>Sadhuram Edutech</span> | Content by{" "}
         <span style={{ fontWeight: 600 }}>
           Practice Papers by Sadhuram Edutech
         </span>
+        </div>
       </div>
+
+      <nav className="footer-legal-row" aria-label="Legal">
+        <Link to="/privacy-policy">Privacy Policy</Link>
+        <span aria-hidden="true">·</span>
+        <Link to="/refund-policy">Refund Policy</Link>
+        <span aria-hidden="true">·</span>
+        <Link to="/terms">Terms &amp; Conditions</Link>
+        <span aria-hidden="true">·</span>
+        <Link to="/contact">Contact</Link>
+      </nav>
     </footer>
   );
 }
