@@ -7,25 +7,28 @@
       // SPA refresh/deep-link support (e.g. GitHub Pages):
       // Redirect unknown paths back to index.html, preserving the full route.
       (function () {
-        // Works for:
-        // - Custom domains (root)
-        // - Project pages (e.g. /my-repo/) because we compute base path from /404.html location.
-        var fullPath =
-          window.location.pathname +
-          window.location.search +
-          window.location.hash;
+        // IMPORTANT:
+        // On GitHub Pages, 404.html is served at the *requested* URL, so
+        // window.location.pathname is the missing route (e.g. /sets/...), not /404.html.
+        // For custom domains we always redirect to '/' and restore the route from a query param.
 
-        var basePath = window.location.pathname;
-        // '/repo/404.html' -> '/repo/'
-        basePath = basePath.replace(/\/404\.html(\?.*)?$/, "/");
-        if (basePath === window.location.pathname) {
-          // Fallback: strip the last segment and keep trailing slash
-          basePath = basePath.replace(/\/[^/]*$/, "/");
+        var search = window.location.search || "";
+        var params;
+        try {
+          params = new URLSearchParams(search);
+        } catch (e) {
+          params = null;
         }
+
+        // If we already have __spa_redirect__ (nested redirect), unwrap it once.
+        var nested = params && params.get("__spa_redirect__");
+        var fullPath = nested
+          ? decodeURIComponent(nested)
+          : window.location.pathname + window.location.search + window.location.hash;
 
         var target =
           window.location.origin +
-          basePath +
+          "/" +
           "?__spa_redirect__=" +
           encodeURIComponent(fullPath);
         window.location.replace(target);
