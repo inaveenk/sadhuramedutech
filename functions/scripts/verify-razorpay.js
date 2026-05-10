@@ -63,7 +63,7 @@ rz.orders
     const desc = e.error?.description || e.message;
     console.error("FAIL — Razorpay rejected this key pair:", code, desc);
     console.error(
-      "Fix: Razorpay Dashboard → Test mode → API keys → copy matching Key ID + Key secret."
+      "Fix: Razorpay Dashboard (test or live) → API keys → copy matching Key ID + Key secret for that mode."
     );
     process.exit(1);
   });

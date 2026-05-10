@@ -24,6 +24,7 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build",
     "deploy:functions": "firebase deploy --only functions",
+    "functions:verify-razorpay": "npm run verify-razorpay --prefix functions",
     "firebase": "firebase"
   },
   "eslintConfig": {

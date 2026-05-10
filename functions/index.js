@@ -214,21 +214,18 @@ async function createRazorpayOrderImpl(request) {
       },
     });
   } catch (err) {
-    const { key_id: kid, key_secret: ksec } = getRazorpayConfig();
-    console.error(
-      "Razorpay orders.create failed:",
-      err,
-      "| key_id prefix:",
-      kid ? `${kid.slice(0, 10)}…` : "(empty)",
-      "secret_len:",
-      ksec.length
-    );
     const desc =
       err?.error?.description ||
       err?.error?.field ||
       err?.message ||
       (typeof err === "string" ? err : "Razorpay request failed");
-    const http = err?.statusCode != null ? ` (HTTP ${err.statusCode})` : "";
+    const httpNum = err?.statusCode;
+    console.error(
+      "Razorpay orders.create failed:",
+      httpNum != null ? `HTTP ${httpNum}` : "",
+      desc
+    );
+    const httpSuffix = httpNum != null ? ` (HTTP ${httpNum})` : "";
     await internalOrderRef
       .update({
         status: "razorpay_create_failed",
@@ -239,7 +236,7 @@ async function createRazorpayOrderImpl(request) {
     // Use failed-precondition so the client shows the message (not generic INTERNAL).
     throw new HttpsError(
       "failed-precondition",
-      `Razorpay: ${desc}${http}`
+      `Razorpay: ${desc}${httpSuffix}`
     );
   }
 
